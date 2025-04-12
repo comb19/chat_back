@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres_db_${APP_NAME}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    env_file:
+      - .env
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db_store:/var/lib/postgresql/data
+
+volumes:
+  db_store:

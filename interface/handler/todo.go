@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"todo_back/usecase"
 
@@ -9,8 +10,8 @@ import (
 )
 
 type todo struct {
-	title       string
-	description string
+	Title       string
+	Description string
 }
 
 type TodoHandler interface {
@@ -29,10 +30,16 @@ type todoHandler struct {
 func (th todoHandler) HandleTodoInsert(ctx *gin.Context) {
 	var todo todo
 
-	if err := ctx.ShouldBind(&todo); err != nil {
-		th.todoUseCase.Insert(th.db, todo.title, todo.description)
-		ctx.String(http.StatusOK, "Inserted")
+	if err := ctx.BindJSON(&todo); err != nil {
+		fmt.Println(err)
+		return
 	}
+	if err := th.todoUseCase.Insert(th.db, todo.Title, todo.Description); err != nil {
+		fmt.Println(err)
+		ctx.String(http.StatusInternalServerError, "Failed to insert todo")
+		return
+	}
+	ctx.String(http.StatusOK, "Inserted")
 }
 
 func (th todoHandler) HandleTodoGetAll(ctx *gin.Context) {

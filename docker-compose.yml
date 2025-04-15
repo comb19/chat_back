@@ -4,9 +4,14 @@ services:
   app:
     build: .
     command: ./todo_back
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT}:8080"
   db:
     image: postgres:latest
     container_name: postgres_db_${APP_NAME}
+    hostname: ${POSTGRES_HOSTNAME}
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

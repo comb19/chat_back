@@ -20,3 +20,12 @@ func (tp todoPersistence) Insert(DB *gorm.DB, title, description string) error {
 	result := DB.Create(&todo)
 	return result.Error
 }
+
+func (tp todoPersistence) GetAll(DB *gorm.DB) ([]model.Todo, error) {
+	var todos []model.Todo
+	result := DB.Find(&todos)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return todos, nil
+}

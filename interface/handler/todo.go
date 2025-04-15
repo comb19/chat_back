@@ -15,6 +15,10 @@ type todo struct {
 
 type TodoHandler interface {
 	HandleTodoInsert(ctx *gin.Context)
+	HandleTodoGetAll(ctx *gin.Context)
+	// HandleTodoGetByID(ctx *gin.Context)
+	// HandleTodoUpdateByID(ctx *gin.Context)
+	// HandleTodoDeleteByID(ctx *gin.Context)
 }
 
 type todoHandler struct {
@@ -29,6 +33,15 @@ func (th todoHandler) HandleTodoInsert(ctx *gin.Context) {
 		th.todoUseCase.Insert(th.db, todo.title, todo.description)
 		ctx.String(http.StatusOK, "Inserted")
 	}
+}
+
+func (th todoHandler) HandleTodoGetAll(ctx *gin.Context) {
+	todos, err := th.todoUseCase.GetAll(th.db)
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "Failed to get todos")
+		return
+	}
+	ctx.JSON(http.StatusOK, todos)
 }
 
 func NewTodoHandler(db *gorm.DB, todoUseCase usecase.TodoUsecase) TodoHandler {

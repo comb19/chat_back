@@ -18,7 +18,8 @@ func Run() {
 
 	router := gin.Default()
 
-	router.GET("/todos", todoHandler.HandleTodoInsert)
+	router.POST("/todos", todoHandler.HandleTodoInsert)
+	router.GET("/todos", todoHandler.HandleTodoGetAll)
 
 	router.Run("localhost:8080")
 }

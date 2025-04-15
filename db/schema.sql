@@ -1,6 +1,7 @@
-CREATE TABLE 'todo' (
-    'id' int NOT NULL
-    'title' varchar(255) NULL
-    'description' text NULL
-    PRIMARY KEY ('id')
-)
+CREATE TABLE "todos" (
+    "id" serial NOT NULL,
+    "title" varchar(255) NULL,
+    "description" text NULL,
+    "completed" boolean NULL,
+    PRIMARY KEY ("id")
+);

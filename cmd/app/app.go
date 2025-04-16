@@ -2,34 +2,34 @@ package app
 
 import (
 	"fmt"
-	"os"
 	"todo_back/infrastructure/config"
 	"todo_back/infrastructure/persistence"
 	"todo_back/interface/handler"
 	"todo_back/usecase"
 
-	"github.com/caarlos0/env/v11"
+	"github.com/caarlos0/env"
+	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-type test struct {
-	Port string `env:"DB_PORT"`
+type EnvVar struct {
+	clerk_sec_key string `env:"CLERK_SECRET_KEY"`
 }
 
 func Run() {
-	var t test
-	if err := env.Parse(&t); err != nil {
+	var env_var EnvVar
+	if err := env.Parse(&env_var); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(t.Port)
-	fmt.Println(os.Getenv("DB_PORT"))
-	fmt.Println("hello")
+
 	db := config.Init()
 
 	todoPersistence := persistence.NewTodoPersistence()
 	todoUseCase := usecase.NewTodoUsecase(todoPersistence)
 	todoHandler := handler.NewTodoHandler(db, todoUseCase)
+
+	clerk.SetKey(env_var.clerk_sec_key)
 
 	router := gin.Default()
 

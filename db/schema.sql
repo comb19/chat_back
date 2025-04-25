@@ -8,14 +8,14 @@ CREATE TABLE "todos" (
 
 CREATE TABLE "users" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "name" varchar(255) NOT NULL,
-)
+    "name" varchar(255) NOT NULL
+);
 
 CREATE TABLE "guilds" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "name" varchar(255) NOT NULL,
-    "description" text NULL,
-)
+    "description" text NULL
+);
 
 CREATE TABLE "channels" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,7 +24,7 @@ CREATE TABLE "channels" (
     "private" boolean NOT NULL DEFAULT false,
     "guild_id" UUID NOT NULL,
     FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
-)
+);
 
 CREATE TABLE "messages" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -33,11 +33,11 @@ CREATE TABLE "messages" (
     "channel_id" UUID NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
-)
+);
 
 CREATE TABLE "user_channels" (
     user_id UUID NOT NULL,
     channel_id UUID NOT NULL,
 
-    PRIMARY KEY (user_id, channel_id),
-)
+    PRIMARY KEY (user_id, channel_id)
+);

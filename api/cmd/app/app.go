@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"todo_back/infrastructure/config"
 	"todo_back/infrastructure/persistence"
 	"todo_back/interface/handler"
@@ -10,27 +11,36 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/clerk/clerk-sdk-go/v2"
+	"github.com/clerk/clerk-sdk-go/v2/jwt"
 	"github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 type EnvVar struct {
-	clerk_sec_key string `env:"CLERK_SECRET_KEY"`
+	Clerk_sec_key string `env:"CLERK_SECRET_KEY"`
 }
 
-func authenticationMiddleware(client *user.Client) gin.HandlerFunc {
+func authenticationMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		claims, ok := clerk.SessionClaimsFromContext(ctx.Request.Context())
-		if !ok {
-			fmt.Print("unauthorized")
+		sessionToken := strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
+		fmt.Println(sessionToken)
+		claims, err := jwt.Verify(ctx.Request.Context(), &jwt.VerifyParams{
+			Token: sessionToken,
+		})
+		if err != nil {
+			fmt.Println("unauthorized")
+			fmt.Println(err)
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		usr, err := user.Get(ctx.Request.Context(), claims.Subject)
+		_, err = user.Get(ctx.Request.Context(), claims.Subject)
 		if err != nil {
-			fmt.Println("error")
+			fmt.Println("user not found")
+			fmt.Println(err)
+			ctx.JSON((http.StatusNotFound), gin.H{"error": "user not found"})
+			return
 		}
-		fmt.Printf("%s %s\n", usr.ID, *usr.FirstName)
 	}
 }
 
@@ -39,6 +49,8 @@ func Run() {
 	if err := env.Parse(&env_var); err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println("clerk sec key")
+	fmt.Println(env_var.Clerk_sec_key)
 
 	db := config.Init()
 
@@ -46,9 +58,10 @@ func Run() {
 	todoUseCase := usecase.NewTodoUsecase(todoPersistence)
 	todoHandler := handler.NewTodoHandler(db, todoUseCase)
 
-	clerk_config := &clerk.ClientConfig{}
-	clerk_config.Key = &env_var.clerk_sec_key
-	clerk_client := user.NewClient(clerk_config)
+	clerk.SetKey(env_var.Clerk_sec_key)
+	// clerk_config := &clerk.ClientConfig{}
+	// clerk_config.Key = &env_var.clerk_sec_key
+	// clerk_client := user.NewClient(clerk_config)
 
 	router := gin.Default()
 
@@ -59,12 +72,13 @@ func Run() {
 		AllowCredentials: false,
 	}))
 
-	router.Use(authenticationMiddleware(clerk_client))
+	// router.Use(authenticationMiddleware(clerk_client))
+	router.Use(authenticationMiddleware())
 
 	router.POST("/todos", todoHandler.HandleTodoInsert)
 	router.GET("/todos", todoHandler.HandleTodoGetAll)
 
-	router.GET("ping", func(ctx *gin.Context) {
+	router.GET("/ping", func(ctx *gin.Context) {
 		fmt.Println("pong")
 		ctx.String(http.StatusOK, "pong")
 	})

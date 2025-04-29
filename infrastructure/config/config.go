@@ -12,7 +12,7 @@ type db_env struct {
 	Host string `env:"POSTGRES_HOSTNAME"`
 	User string `env:"POSTGRES_USER"`
 	Pass string `env:"POSTGRES_PASSWORD"`
-	Port string `env:"DB_PORT"`
+	Port string `env:"POSTGRES_PORT"`
 	DB   string `env:"POSTGRES_DB"`
 }
 

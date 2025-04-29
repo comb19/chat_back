@@ -2,7 +2,7 @@ version: '3'
 
 services:
   app:
-    build: .
+    build: ./api
     command: ./todo_back
     env_file:
       - .env
@@ -37,18 +37,19 @@ services:
     volumes:
       - db_store_dev:/var/lib/postgresql/data
   migrate:
-    image: arigaio/atlas:latest
+    build: ./migration
     container_name: migrate_${APP_NAME}
     volumes:
-      - ./db:/db
-      - ./script:/script
-    entrypoint: ["/bin/sh", "/script/wait-for-it.sh", "db-dev:5432", "--",
+      - ./db:/db:ro
+    entrypoint: ["/bin/bash", "/app/wait-for-it.sh", "${POSTGRES_HOSTNAME}:5432", "--",
       "atlas", "schema", "apply",
       "--url", "${POSTGRES_URL}",
       "--dev-url", "${POSTGRES_URL_DEV}",
-      "--to", "file://db/schema.sql",
-      "--format", "'{{ sql . \"  \" }}'",
+      "--to", "file:///db/schema.sql",
+      "--auto-approve"
     ]
+    env_file:
+      - .env
     depends_on:
       - db
       - db-dev

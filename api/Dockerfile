@@ -9,8 +9,8 @@ COPY go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o todo_back .
+RUN go build -o chat_back .
 
 EXPOSE 8080
 
-CMD ["./todo_back"]
+CMD ["./chat_back"]

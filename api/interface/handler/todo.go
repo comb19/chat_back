@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"chat_back/usecase"
 	"fmt"
 	"net/http"
-	"todo_back/usecase"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

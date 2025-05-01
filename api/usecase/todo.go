@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"todo_back/domain/model"
-	"todo_back/domain/repository"
+	"chat_back/domain/model"
+	"chat_back/domain/repository"
 
 	"gorm.io/gorm"
 )

@@ -1,4 +1,4 @@
-module todo_back
+module chat_back
 
 go 1.24.2
 

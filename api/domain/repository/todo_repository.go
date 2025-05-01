@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"todo_back/domain/model"
+	"chat_back/domain/model"
 
 	"gorm.io/gorm"
 )

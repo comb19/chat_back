@@ -1,9 +1,9 @@
 package persistence
 
 import (
+	"chat_back/domain/model"
+	"chat_back/domain/repository"
 	"fmt"
-	"todo_back/domain/model"
-	"todo_back/domain/repository"
 
 	"gorm.io/gorm"
 )

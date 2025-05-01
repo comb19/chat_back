@@ -1,13 +1,13 @@
 package app
 
 import (
+	"chat_back/infrastructure/config"
+	"chat_back/infrastructure/persistence"
+	"chat_back/interface/handler"
+	"chat_back/usecase"
 	"fmt"
 	"net/http"
 	"strings"
-	"todo_back/infrastructure/config"
-	"todo_back/infrastructure/persistence"
-	"todo_back/interface/handler"
-	"todo_back/usecase"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/clerk/clerk-sdk-go/v2"

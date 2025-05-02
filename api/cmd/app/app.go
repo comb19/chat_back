@@ -19,6 +19,7 @@ import (
 
 type EnvVar struct {
 	Clerk_sec_key string `env:"CLERK_SECRET_KEY"`
+	Frontend_url  string `env:"FRONTEND_URL"`
 }
 
 func authenticationMiddleware() gin.HandlerFunc {
@@ -66,7 +67,7 @@ func Run() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{env_var.Frontend_url},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: false,

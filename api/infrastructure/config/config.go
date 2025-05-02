@@ -15,16 +15,17 @@ type db_env struct {
 	Pass string `env:"POSTGRES_PASSWORD"`
 	Port string `env:"POSTGRES_PORT"`
 	DB   string `env:"POSTGRES_DB"`
+	DSN  string `env:"POSTGRES_URL"`
 }
 
-func Connect(dns string, timeout, interval time.Duration) *gorm.DB {
+func Connect(dsn string, timeout, interval time.Duration) *gorm.DB {
 	deadline := time.Now().Add(timeout)
 
 	for {
 		if time.Now().After(deadline) {
 			panic("failed to connect to database")
 		}
-		db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err == nil {
 			return db
 		}
@@ -38,8 +39,5 @@ func Init() *gorm.DB {
 	if err := env.Parse(&dbEnv); err != nil {
 		fmt.Print(err)
 	}
-	fmt.Println(dbEnv)
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Tokyo", dbEnv.Host, dbEnv.User, dbEnv.Pass, dbEnv.DB, dbEnv.Port)
-	fmt.Println(dsn)
-	return Connect(dsn, 3*time.Minute, 15*time.Second)
+	return Connect(dbEnv.DSN, 3*time.Minute, 15*time.Second)
 }

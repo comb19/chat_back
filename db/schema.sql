@@ -22,7 +22,9 @@ CREATE TABLE "channels" (
     "name" varchar(255) NOT NULL,
     "description" text NULL,
     "private" boolean NOT NULL DEFAULT false,
-    "guild_id" UUID NOT NULL,
+    "guild_id" UUID,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
 );
 
@@ -41,3 +43,16 @@ CREATE TABLE "user_channels" (
 
     PRIMARY KEY (user_id, channel_id)
 );
+
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_timestamp
+BEFORE UPDATE ON channels
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();

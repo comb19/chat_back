@@ -1,0 +1,45 @@
+package persistence
+
+import (
+	"chat_back/domain/model"
+	"chat_back/domain/repository"
+	"fmt"
+
+	"gorm.io/gorm"
+)
+
+type userChannelsPersistence struct{}
+
+func NewUserChannelsPersistence() repository.UserChannelsRepository {
+	return &userChannelsPersistence{}
+}
+
+func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
+	if userChannels, err := c.Find(db, userID, channelID); err != nil {
+		return nil, err
+	} else if userChannels != nil {
+		return userChannels, fmt.Errorf("user %s is already a member of channel %s", userID, channelID)
+	}
+	userChannels := &model.UserChannels{
+		UserID:    userID,
+		ChannelID: channelID,
+	}
+	if err := db.Create(userChannels).Error; err != nil {
+		return nil, err
+	}
+	return userChannels, nil
+}
+
+func (c *userChannelsPersistence) Find(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
+	var userChannels model.UserChannels
+	result := db.Where("user_id = ? AND channel_id = ?", userID, channelID).First(&userChannels)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		fmt.Println("User channel not found")
+		return nil, nil
+	}
+	return &userChannels, nil
+}

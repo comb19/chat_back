@@ -1,9 +1,11 @@
 package model
 
 type Channel struct {
-	ID        string
-	Name      string
-	Guild_id  string
-	CreatedAt string
-	UpdatedAt string
+	ID          string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name        string
+	Description string
+	GuildID     *string
+	Private     bool
+	CreatedAt   string
+	UpdatedAt   string
 }

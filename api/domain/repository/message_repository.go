@@ -1,7 +1,13 @@
 package repository
 
+import (
+	"chat_back/domain/model"
+
+	"gorm.io/gorm"
+)
+
 type MessageRepository interface {
-	Insert(guildID string, channelID string, userID string, content string) error
-	GetByID(guildID string, channelID string, userID string) (string, error)
-	GetAllInChannel(guildID string, channelID string) ([]string, error)
+	Insert(db *gorm.DB, channelID string, userID string, content string) error
+	GetByID(db *gorm.DB, ID string) (model.Message, error)
+	GetAllInChannel(db *gorm.DB, channelID string) ([]model.Message, error)
 }

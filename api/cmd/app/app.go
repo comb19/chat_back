@@ -25,7 +25,7 @@ type EnvVar struct {
 func authenticationMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		sessionToken := strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
-		fmt.Println(sessionToken)
+		fmt.Println("session token", sessionToken)
 		claims, err := jwt.Verify(ctx.Request.Context(), &jwt.VerifyParams{
 			Token: sessionToken,
 		})
@@ -35,13 +35,16 @@ func authenticationMiddleware() gin.HandlerFunc {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		_, err = user.Get(ctx.Request.Context(), claims.Subject)
+		clerk_user, err := user.Get(ctx.Request.Context(), claims.Subject)
 		if err != nil {
 			fmt.Println("user not found")
 			fmt.Println(err)
 			ctx.JSON((http.StatusNotFound), gin.H{"error": "user not found"})
 			return
 		}
+		fmt.Println(clerk_user)
+		ctx.Set("user", clerk_user)
+		ctx.Next()
 	}
 }
 
@@ -59,10 +62,18 @@ func Run() {
 	todoUseCase := usecase.NewTodoUsecase(todoPersistence)
 	todoHandler := handler.NewTodoHandler(db, todoUseCase)
 
+	userChannelsPersistence := persistence.NewUserChannelsPersistence()
+	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
+
+	messagePersistence := persistence.NewMessagePersistence()
+	messageUseCase := usecase.NewMessageUsecase(messagePersistence)
+	messageHandler := handler.NewMessageHandler(db, messageUseCase, authorizationUseCase)
+
+	channelPersistence := persistence.NewChannelPersistence()
+	channelUseCase := usecase.NewChannelUsecase(channelPersistence)
+	channelHandler := handler.NewChannelHandler(db, channelUseCase)
+
 	clerk.SetKey(env_var.Clerk_sec_key)
-	// clerk_config := &clerk.ClientConfig{}
-	// clerk_config.Key = &env_var.clerk_sec_key
-	// clerk_client := user.NewClient(clerk_config)
 
 	router := gin.Default()
 
@@ -73,11 +84,22 @@ func Run() {
 		AllowCredentials: false,
 	}))
 
-	// router.Use(authenticationMiddleware(clerk_client))
-	router.Use(authenticationMiddleware())
+	authorized := router.Group("/")
+	authorized.Use(authenticationMiddleware())
+	{
+		authorized.POST("/todos", todoHandler.HandleTodoInsert)
+		authorized.GET("/todos", todoHandler.HandleTodoGetAll)
 
-	router.POST("/todos", todoHandler.HandleTodoInsert)
-	router.GET("/todos", todoHandler.HandleTodoGetAll)
+		authorized.GET("/messages/:channelID", messageHandler.HandleMessageInChannel)
+
+		authorized.GET("/channels", func(ctx *gin.Context) {})
+		authorized.GET("/channels/:channelID", func(ctx *gin.Context) {})
+		authorized.POST("/channels", channelHandler.HandleInsert)
+		authorized.PUT("/channels/:channelID", func(ctx *gin.Context) {})
+		authorized.DELETE("/channels/:channelID", func(ctx *gin.Context) {})
+	}
+
+	router.GET("/ws/messages/:channelID", messageHandler.HandleMessageWebSocket)
 
 	router.GET("/ping", func(ctx *gin.Context) {
 		fmt.Println("pong")

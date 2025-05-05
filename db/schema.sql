@@ -7,8 +7,8 @@ CREATE TABLE "todos" (
 );
 
 CREATE TABLE "users" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "name" varchar(255) NOT NULL
+    "id" varchar(32) PRIMARY KEY,
+    "user_name" varchar(255) NOT NULL
 );
 
 CREATE TABLE "guilds" (
@@ -31,14 +31,16 @@ CREATE TABLE "channels" (
 CREATE TABLE "messages" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "content" text NOT NULL,
-    "user_id" UUID NOT NULL,
+    "user_id" varchar(32),
     "channel_id" UUID NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
 );
 
 CREATE TABLE "user_channels" (
-    user_id UUID NOT NULL,
+    user_id varchar(32) NOT NULL,
     channel_id UUID NOT NULL,
 
     PRIMARY KEY (user_id, channel_id)

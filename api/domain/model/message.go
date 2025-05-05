@@ -1,10 +1,11 @@
 package model
 
 type Message struct {
-	ID         string
-	Content    string
-	User_id    string
-	Channel_id string
-	CreatedAt  string
-	UpdatedAt  string
+	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Content   string
+	UserID    string
+	UserName  string
+	ChannelID string
+	CreatedAt string
+	UpdatedAt string
 }

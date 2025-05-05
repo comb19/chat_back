@@ -8,29 +8,43 @@ import (
 )
 
 type ChannelUsecase interface {
-	Insert(db *gorm.DB, name string, description string, public bool, guildID *string) (*string, error)
-	GetByID(db *gorm.DB, id string) (model.Channel, error)
+	Insert(db *gorm.DB, name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
+	GetByID(db *gorm.DB, id string) (*model.Channel, error)
 	GetAllInGuild(db *gorm.DB, guildID *string) ([]model.Channel, error)
 }
 
 type channelUseCase struct {
-	channelRepository repository.ChannelRepository
+	userChannelsRespository repository.UserChannelsRepository
+	channelRepository       repository.ChannelRepository
 }
 
-func NewChannelUsecase(channelRepository repository.ChannelRepository) ChannelUsecase {
+func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository, channelRepository repository.ChannelRepository) ChannelUsecase {
 	return &channelUseCase{
-		channelRepository: channelRepository,
+		userChannelsRespository: userChannelsRepository,
+		channelRepository:       channelRepository,
 	}
 }
 
-func (cu channelUseCase) Insert(db *gorm.DB, name string, description string, public bool, guildID *string) (*string, error) {
-	return cu.channelRepository.Insert(db, name, description, public, guildID)
+func (cu channelUseCase) Insert(db *gorm.DB, name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error) {
+	channel, err := cu.channelRepository.Insert(db, name, description, public, guildID)
+	if err != nil {
+		return nil, err
+	}
+
+	userChannels, err := cu.userChannelsRespository.Insert(db, ownerID, channel.ID)
+	if err != nil {
+		return nil, err
+	}
+	if userChannels == nil {
+		return nil, err
+	}
+	return channel, nil
 }
 
-func (cu channelUseCase) GetByID(db *gorm.DB, id string) (model.Channel, error) {
+func (cu channelUseCase) GetByID(db *gorm.DB, id string) (*model.Channel, error) {
 	channel, err := cu.channelRepository.GetByID(db, id)
 	if err != nil {
-		return model.Channel{}, err
+		return nil, err
 	}
 	return channel, nil
 }

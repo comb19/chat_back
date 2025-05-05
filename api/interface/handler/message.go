@@ -7,15 +7,24 @@ import (
 
 	"encoding/json"
 
+	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
 
+type receiveMessage struct {
+	Action    string `json:"action"`
+	ChannelID string `json:"channel_id"`
+	Content   string `json:"content"`
+}
+
 type message struct {
-	userID    string
-	channelID string
-	content   []byte
+	ID        string `json:"id"`
+	UserID    string `json:"user_id"`
+	UserName  string `json:"user_name"`
+	ChannelID string `json:"channel_id"`
+	Content   string `json:"content"`
 }
 
 type messageURI struct {
@@ -73,12 +82,18 @@ func (h *Hub) run() {
 				}
 			}
 		case msg := <-h.broadcast:
-			for conn, _ := range (*h.conns)[msg.channelID] {
-				err := conn.WriteMessage(websocket.TextMessage, msg.content)
+			for conn, _ := range (*h.conns)[msg.ChannelID] {
+				fmt.Println("broadcast", msg.ChannelID)
+				parsed_msg, err := json.Marshal(msg)
+				if err != nil {
+					fmt.Println("Error marshalling message:", err)
+					continue
+				}
+				err = conn.WriteMessage(websocket.TextMessage, parsed_msg)
 				if err != nil {
 					fmt.Println("Error writing message:", err)
 					conn.Close()
-					delete((*h.conns)[msg.channelID], conn)
+					delete((*h.conns)[msg.ChannelID], conn)
 				}
 			}
 
@@ -109,7 +124,7 @@ func NewMessageHandler(db *gorm.DB, messageUseCase usecase.MessageUsecase, autho
 	}
 }
 
-func waitForMessage(uc usecase.MessageUsecase, db *gorm.DB, messageURI messageURI, conn *websocket.Conn, broadcast chan message) {
+func waitForMessage(uc usecase.MessageUsecase, db *gorm.DB, user *clerk.User, messageURI messageURI, conn *websocket.Conn, broadcast chan message) {
 	for {
 		msgType, msg, err := conn.ReadMessage()
 		fmt.Println("read a message", msgType, string(msg))
@@ -117,13 +132,33 @@ func waitForMessage(uc usecase.MessageUsecase, db *gorm.DB, messageURI messageUR
 			fmt.Println("Error reading message:", err)
 			break
 		}
-		if msgType == websocket.TextMessage {
+
+		var receiveMessage receiveMessage
+		if err := json.Unmarshal(msg, &receiveMessage); err != nil {
+			fmt.Println("Error unmarshalling message:", err)
+			break
+		}
+		fmt.Println("receiveMessage", receiveMessage)
+
+		if receiveMessage.ChannelID != messageURI.ChannelID {
+			fmt.Println("Channel ID mismatch")
+			break
+		}
+
+		if msgType == websocket.TextMessage && receiveMessage.Action == "message" {
 			fmt.Println("broadcast")
-			uc.Insert(db, messageURI.ChannelID, "userID", string(msg))
+			inserted_msg, err := uc.Insert(db, messageURI.ChannelID, user.ID, receiveMessage.Content)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
 			broadcast <- message{
-				userID:    "userID",
-				channelID: messageURI.ChannelID,
-				content:   msg,
+				ID:        inserted_msg.ID,
+				UserID:    user.ID,
+				UserName:  inserted_msg.UserName,
+				ChannelID: messageURI.ChannelID,
+				Content:   receiveMessage.Content,
 			}
 		}
 	}
@@ -171,7 +206,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 	fmt.Println(authorizationMessage.ChannelID)
 	fmt.Println("hi")
 
-	user, err := mh.authorizationUseCase.CheckPermission(mh.db, authorizationMessage.UserID, authorizationMessage.ChannelID, authorizationMessage.Token)
+	user, err := mh.authorizationUseCase.CheckPermission(mh.db, authorizationMessage.ChannelID, authorizationMessage.Token)
 	if err != nil {
 		fmt.Println("Error checking permission:", err)
 		ctx.String(http.StatusInternalServerError, "Failed to check permission")
@@ -189,7 +224,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 		channelID: messageURI.ChannelID,
 	}
 
-	go waitForMessage(mh.messageUseCase, mh.db, messageURI, conn, mh.hub.broadcast)
+	go waitForMessage(mh.messageUseCase, mh.db, user, messageURI, conn, mh.hub.broadcast)
 }
 
 func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
@@ -208,6 +243,7 @@ func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
 }
 
 func (mh messageHandler) HandleMessageInChannel(ctx *gin.Context) {
+	fmt.Println("HandleMessageInChannel")
 	var messageURI messageURI
 	fmt.Println(ctx)
 	if err := ctx.ShouldBindUri(&messageURI); err != nil {
@@ -221,5 +257,17 @@ func (mh messageHandler) HandleMessageInChannel(ctx *gin.Context) {
 		ctx.String(http.StatusInternalServerError, "Failed to get messages")
 		return
 	}
-	ctx.JSON(http.StatusOK, messages)
+	var parsed_messages []message
+	for _, msg := range messages {
+		parsed_messages = append(parsed_messages, message{
+			ID:        msg.ID,
+			UserID:    msg.UserID,
+			UserName:  msg.UserName,
+			ChannelID: msg.ChannelID,
+			Content:   msg.Content,
+		})
+	}
+	fmt.Println("parsed_messages", parsed_messages)
+
+	ctx.JSON(http.StatusOK, parsed_messages)
 }

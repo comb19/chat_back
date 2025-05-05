@@ -14,7 +14,7 @@ func NewChannelPersistence() repository.ChannelRepository {
 	return &channelPersistence{}
 }
 
-func (c *channelPersistence) Insert(db *gorm.DB, name string, description string, private bool, guildID *string) (*string, error) {
+func (c *channelPersistence) Insert(db *gorm.DB, name string, description string, private bool, guildID *string) (*model.Channel, error) {
 	channel := model.Channel{
 		Name:        name,
 		Description: description,
@@ -27,16 +27,17 @@ func (c *channelPersistence) Insert(db *gorm.DB, name string, description string
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return &channel.ID, result.Error
+	fmt.Println("Channel created:", channel)
+	return &channel, result.Error
 }
 
-func (c *channelPersistence) GetByID(db *gorm.DB, id string) (model.Channel, error) {
+func (c *channelPersistence) GetByID(db *gorm.DB, id string) (*model.Channel, error) {
 	var channel model.Channel
 	result := db.First(&channel, id)
 	if result.Error != nil {
-		return model.Channel{}, result.Error
+		return nil, result.Error
 	}
-	return channel, nil
+	return &channel, nil
 }
 
 func (c *channelPersistence) GetAllInGuild(db *gorm.DB, guildID *string) ([]model.Channel, error) {

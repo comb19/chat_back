@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -43,14 +44,25 @@ func NewChannelHandler(db *gorm.DB, channelUseCase usecase.ChannelUsecase) Chann
 }
 
 func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
+	fmt.Println("HandleInsert")
 	var channel Channel
-
 	if err := ctx.BindJSON(&channel); err != nil {
 		ctx.String(http.StatusBadRequest, "Invalid request")
 		return
 	}
 
-	channelId, err := ch.channelUseCase.Insert(ch.db, channel.Name, channel.Description, channel.Private, channel.GuildID)
+	user_temp, ok := ctx.Get("user")
+	if !ok {
+		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	user, ok := user_temp.(*clerk.User)
+	if !ok {
+		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	new_channel, err := ch.channelUseCase.Insert(ch.db, channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
 	if err != nil {
 		fmt.Println(err)
 		ctx.String(http.StatusInternalServerError, "Failed to insert channel")
@@ -58,7 +70,7 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"channel_id": *channelId,
+		"channel_id": new_channel.ID,
 	})
 }
 

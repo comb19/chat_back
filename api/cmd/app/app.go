@@ -15,11 +15,13 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	svix "github.com/svix/svix-webhooks/go"
 )
 
 type EnvVar struct {
 	Clerk_sec_key string `env:"CLERK_SECRET_KEY"`
 	Frontend_url  string `env:"FRONTEND_URL"`
+	Svix_sec_key  string `env:"SVIX_SECRET_KEY"`
 }
 
 func authenticationMiddleware() gin.HandlerFunc {
@@ -56,11 +58,22 @@ func Run() {
 	fmt.Println("clerk sec key")
 	fmt.Println(env_var.Clerk_sec_key)
 
+	clerk.SetKey(env_var.Clerk_sec_key)
+	wh, err := svix.NewWebhook(env_var.Svix_sec_key)
+	if err != nil {
+		fmt.Println("Error creating webhook:", err)
+		panic(err)
+	}
+
 	db := config.Init()
 
 	todoPersistence := persistence.NewTodoPersistence()
 	todoUseCase := usecase.NewTodoUsecase(todoPersistence)
 	todoHandler := handler.NewTodoHandler(db, todoUseCase)
+
+	userPersistence := persistence.NewUserPersistence()
+	userUseCase := usecase.NewUserUsecase(userPersistence)
+	userHandler := handler.NewUserHandler(db, wh, userUseCase)
 
 	userChannelsPersistence := persistence.NewUserChannelsPersistence()
 	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
@@ -70,10 +83,8 @@ func Run() {
 	messageHandler := handler.NewMessageHandler(db, messageUseCase, authorizationUseCase)
 
 	channelPersistence := persistence.NewChannelPersistence()
-	channelUseCase := usecase.NewChannelUsecase(channelPersistence)
+	channelUseCase := usecase.NewChannelUsecase(userChannelsPersistence, channelPersistence)
 	channelHandler := handler.NewChannelHandler(db, channelUseCase)
-
-	clerk.SetKey(env_var.Clerk_sec_key)
 
 	router := gin.Default()
 
@@ -98,6 +109,8 @@ func Run() {
 		authorized.PUT("/channels/:channelID", func(ctx *gin.Context) {})
 		authorized.DELETE("/channels/:channelID", func(ctx *gin.Context) {})
 	}
+
+	router.POST("/users", userHandler.HandleCreateUserByClerk)
 
 	router.GET("/ws/messages/:channelID", messageHandler.HandleMessageWebSocket)
 

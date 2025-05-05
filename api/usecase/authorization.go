@@ -12,7 +12,7 @@ import (
 )
 
 type AuthorizationUsecase interface {
-	CheckPermission(db *gorm.DB, userID string, channelID string, token string) (*clerk.User, error)
+	CheckPermission(db *gorm.DB, channelID string, token string) (*clerk.User, error)
 }
 
 type authorizationUsecase struct {
@@ -25,17 +25,8 @@ func NewAuthorizationUsecase(userChannelsRepository repository.UserChannelsRepos
 	}
 }
 
-func (au *authorizationUsecase) CheckPermission(db *gorm.DB, userID string, channelID string, token string) (*clerk.User, error) {
+func (au *authorizationUsecase) CheckPermission(db *gorm.DB, channelID string, token string) (*clerk.User, error) {
 	fmt.Println("CheckPermission")
-	userChannels, err := au.userChannelsRepository.Find(db, userID, channelID)
-	if err != nil {
-		return nil, err
-	}
-	if userChannels == nil {
-		return nil, nil
-	}
-	fmt.Println("userChannels", userChannels)
-
 	context := context.Background()
 	claims, err := jwt.Verify(context, &jwt.VerifyParams{
 		Token: token,
@@ -47,5 +38,15 @@ func (au *authorizationUsecase) CheckPermission(db *gorm.DB, userID string, chan
 	if err != nil {
 		return nil, err
 	}
+
+	userChannels, err := au.userChannelsRepository.Find(db, user.ID, channelID)
+	if err != nil {
+		return nil, err
+	}
+	if userChannels == nil {
+		return nil, nil
+	}
+	fmt.Println("userChannels", userChannels)
+
 	return user, nil
 }

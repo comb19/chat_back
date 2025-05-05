@@ -22,6 +22,7 @@ func Connect(dsn string, timeout, interval time.Duration) *gorm.DB {
 		}
 		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err == nil {
+			fmt.Println("Connected to database")
 			return db
 		}
 		fmt.Println("Retrying to connect to database...")

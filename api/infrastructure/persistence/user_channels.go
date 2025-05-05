@@ -15,6 +15,7 @@ func NewUserChannelsPersistence() repository.UserChannelsRepository {
 }
 
 func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
+	fmt.Println("Inserting user channel:", userID, channelID)
 	if userChannels, err := c.Find(db, userID, channelID); err != nil {
 		return nil, err
 	} else if userChannels != nil {
@@ -27,12 +28,13 @@ func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID s
 	if err := db.Create(userChannels).Error; err != nil {
 		return nil, err
 	}
+	fmt.Println("User channel created:", userChannels)
 	return userChannels, nil
 }
 
 func (c *userChannelsPersistence) Find(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
 	var userChannels model.UserChannels
-	result := db.Where("user_id = ? AND channel_id = ?", userID, channelID).First(&userChannels)
+	result := db.Where("user_id = ? AND channel_id = ?", userID, channelID).FirstOrInit(&userChannels)
 	if result.Error != nil {
 		fmt.Println(result.Error)
 		return nil, result.Error

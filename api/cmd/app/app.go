@@ -12,22 +12,21 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/jwt"
-	"github.com/clerk/clerk-sdk-go/v2/user"
+	clerkUser "github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	svix "github.com/svix/svix-webhooks/go"
 )
 
 type EnvVar struct {
-	Clerk_sec_key string `env:"CLERK_SECRET_KEY"`
-	Frontend_url  string `env:"FRONTEND_URL"`
-	Svix_sec_key  string `env:"SVIX_SECRET_KEY"`
+	ClerkSecKey string `env:"CLERK_SECRET_KEY"`
+	FrontendUrl string `env:"FRONTEND_URL"`
+	SvixSecKey  string `env:"SVIX_SECRET_KEY"`
 }
 
 func authenticationMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		sessionToken := strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
-		fmt.Println("session token", sessionToken)
 		claims, err := jwt.Verify(ctx.Request.Context(), &jwt.VerifyParams{
 			Token: sessionToken,
 		})
@@ -37,15 +36,19 @@ func authenticationMiddleware() gin.HandlerFunc {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
-		clerk_user, err := user.Get(ctx.Request.Context(), claims.Subject)
+
+		user, err := clerkUser.Get(ctx.Request.Context(), claims.Subject)
 		if err != nil {
 			fmt.Println("user not found")
 			fmt.Println(err)
-			ctx.JSON((http.StatusNotFound), gin.H{"error": "user not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
-		fmt.Println(clerk_user)
-		ctx.Set("user", clerk_user)
+
+		fmt.Println("authorized:", user.Username)
+		fmt.Println(user)
+
+		ctx.Set("user", user)
 		ctx.Next()
 	}
 }
@@ -55,21 +58,16 @@ func Run() {
 	if err := env.Parse(&env_var); err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println("clerk sec key")
-	fmt.Println(env_var.Clerk_sec_key)
 
-	clerk.SetKey(env_var.Clerk_sec_key)
-	wh, err := svix.NewWebhook(env_var.Svix_sec_key)
+	clerk.SetKey(env_var.ClerkSecKey)
+
+	wh, err := svix.NewWebhook(env_var.SvixSecKey)
 	if err != nil {
 		fmt.Println("Error creating webhook:", err)
 		panic(err)
 	}
 
 	db := config.Init()
-
-	todoPersistence := persistence.NewTodoPersistence()
-	todoUseCase := usecase.NewTodoUsecase(todoPersistence)
-	todoHandler := handler.NewTodoHandler(db, todoUseCase)
 
 	userPersistence := persistence.NewUserPersistence()
 	userUseCase := usecase.NewUserUsecase(userPersistence)
@@ -89,7 +87,7 @@ func Run() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{env_var.Frontend_url},
+		AllowOrigins:     []string{env_var.FrontendUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: false,
@@ -98,9 +96,6 @@ func Run() {
 	authorized := router.Group("/")
 	authorized.Use(authenticationMiddleware())
 	{
-		authorized.POST("/todos", todoHandler.HandleTodoInsert)
-		authorized.GET("/todos", todoHandler.HandleTodoGetAll)
-
 		authorized.GET("/messages/:channelID", messageHandler.HandleMessageInChannel)
 
 		authorized.GET("/channels", func(ctx *gin.Context) {})

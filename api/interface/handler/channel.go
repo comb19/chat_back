@@ -18,7 +18,15 @@ type guildURI struct {
 	ID string `uri:"guild_id" binding:"required, uuid"`
 }
 
-type Channel struct {
+type RequestChannel struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Private     bool    `json:"private"`
+	GuildID     *string `json:"guild_id"`
+}
+
+type ResponseChannel struct {
+	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Private     bool    `json:"private"`
@@ -45,63 +53,92 @@ func NewChannelHandler(db *gorm.DB, channelUseCase usecase.ChannelUsecase) Chann
 
 func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 	fmt.Println("HandleInsert")
-	var channel Channel
+
+	var channel RequestChannel
 	if err := ctx.BindJSON(&channel); err != nil {
-		ctx.String(http.StatusBadRequest, "Invalid request")
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request",
+		})
 		return
 	}
 
-	user_temp, ok := ctx.Get("user")
+	tempUser, ok := ctx.Get("user")
 	if !ok {
-		ctx.String(http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-	user, ok := user_temp.(*clerk.User)
-	if !ok {
-		ctx.String(http.StatusUnauthorized, "Unauthorized")
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	new_channel, err := ch.channelUseCase.Insert(ch.db, channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	newChannel, err := ch.channelUseCase.Insert(ch.db, channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
 	if err != nil {
 		fmt.Println(err)
-		ctx.String(http.StatusInternalServerError, "Failed to insert channel")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert channel"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"channel_id": new_channel.ID,
+	ctx.JSON(http.StatusCreated, ResponseChannel{
+		ID:          newChannel.ID,
+		Name:        newChannel.Name,
+		Description: newChannel.Description,
+		Private:     newChannel.Private,
+		GuildID:     newChannel.GuildID,
 	})
 }
 
 func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
+	fmt.Println("HandleGetByID")
+
 	var uri channelURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.String(http.StatusBadRequest, "Invalid request")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
 	channel, err := ch.channelUseCase.GetByID(ch.db, uri.ID)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "Failed to get channel")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get channel"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, channel)
+	ctx.JSON(http.StatusOK, ResponseChannel{
+		ID:          channel.ID,
+		Name:        channel.Name,
+		Description: channel.Description,
+		Private:     channel.Private,
+		GuildID:     channel.GuildID,
+	})
 }
 
 func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
+	fmt.Println("HandleGetAllInGuild")
+
 	var uri guildURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.String(http.StatusBadRequest, "Invalid request")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	channels, err := ch.channelUseCase.GetAllInGuild(ch.db, &uri.ID)
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "Failed to get channels")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get channels"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, channels)
+	responseChannels := make([]ResponseChannel, 0)
+	for _, channel := range channels {
+		responseChannels = append(responseChannels, ResponseChannel{
+			ID:          channel.ID,
+			Name:        channel.Name,
+			Description: channel.Description,
+			Private:     channel.Private,
+			GuildID:     channel.GuildID,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, responseChannels)
 }

@@ -30,8 +30,83 @@ paths:
     post:
       summary: "チャンネルの追加"
       tags: ["channels"]
+      parameters:
+        - name: token
+          in: header
+          required: true
+          schema: 
+            type: string
+          example: "Bearer xxxxxxxxxxxxxxxxxxx"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: "Channel created successfully."
+        400:
+          description: "Bad Request"
+        401:
+          description: "Unauthorized"
+
 
   "/messages/[channel_id]":
     get:
       summary: "チャンネル内のメッセージを取得"
       tags: ["messages"]
+      parameters:
+        - name: token
+          in: header
+          required: true
+          schema: 
+            type: string
+          example: "Bearer xxxxxxxxxxxxxxxxxxx"
+      responses:
+        200:
+          description: "Get messages successfully."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+
+
+  "/ws/messages/[channel_id]":
+    get:
+      summary: "チャンネル内のメッセージの送受信用のWebsocketの接続を確立"
+      tags: ["messages"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WS_Request_Message"
+      responses:
+        200:
+          description: "Broadcast a message"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+components:
+  schemas:
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        user_id: { type: string }
+        user_name: { type: string }
+        channel_id: { type: string }
+        content: { type: string }
+    WS_Request_Message:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [authorization, send]
+        user_id: { type: string }
+        channel_id: { type: string }
+        content: { type: string }
+        token: { type: string }

@@ -43,7 +43,7 @@ paths:
             schema:
               type: object
       responses:
-        200:
+        201:
           description: "Channel created successfully."
         400:
           description: "Bad Request"

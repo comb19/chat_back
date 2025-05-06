@@ -41,10 +41,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              $ref: "#/components/schemas/RequestChannel"
       responses:
         201:
           description: "Channel created successfully."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseChannel"
         400:
           description: "Bad Request"
         401:
@@ -92,6 +96,23 @@ paths:
 
 components:
   schemas:
+    RequestChannel:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        private: { type: string }
+        guild_id: { type: string, null } 
+
+    ResponseChannel:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        private: { type: string }
+        guild_id: { type: string, null } 
+
     Message:
       type: object
       properties:

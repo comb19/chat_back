@@ -20,14 +20,12 @@ const (
 
 type sentMessage struct {
 	Action    string `json:"action"`
-	UserID    string `json:user_id`
 	ChannelID string `json:"channel_id"`
 	Content   string `json:"content"`
 }
 
 type authorizationMessage struct {
 	Action    string `json:"action"`
-	UserID    string `json:"user_id"`
 	ChannelID string `json:"channel_id"`
 	Token     string `json:"token"`
 }
@@ -165,17 +163,13 @@ func waitForMessage(uc usecase.MessageUsecase, db *gorm.DB, user *clerk.User, me
 			fmt.Println("Action mismatch:", sentMessage.Action)
 			break
 		}
-		if sentMessage.UserID != user.ID {
-			fmt.Println("User ID mismatch:", sentMessage.UserID)
-			break
-		}
 		if sentMessage.ChannelID != messageURI.ChannelID {
 			fmt.Println("Channel ID mismatch")
 			break
 		}
 
 		fmt.Println("broadcast")
-		insertedMessage, err := uc.Insert(db, sentMessage.ChannelID, sentMessage.UserID, sentMessage.Content)
+		insertedMessage, err := uc.Insert(db, sentMessage.ChannelID, user.ID, sentMessage.Content)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -229,7 +223,6 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 	}
 
 	fmt.Println("hi")
-	fmt.Println(authorizationMessage.UserID)
 	fmt.Println(authorizationMessage.ChannelID)
 	fmt.Println("hi")
 

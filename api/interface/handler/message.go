@@ -220,7 +220,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 
 	mh.hub.register <- &Client{
 		conn:      conn,
-		userID:    authorizationMessage.UserID,
+		userID:    user.ID,
 		channelID: messageURI.ChannelID,
 	}
 

@@ -1,0 +1,23 @@
+name: migration 
+
+on:
+    push:
+    pull_request:
+        branches: ["main"]
+
+    workflow_dispatch:
+
+
+jobs:
+    build:
+        runs-on: ubuntu-22.04
+        steps:
+            - name: Show ubuntu details
+              run: lsb_release -a
+            - name: curl
+              run: apk add --no-cache bash curl
+            - name: install atlas
+              run: curl -sSf https://atlasgo.sh | sh
+            - name: schema inspect
+              run: atlas schema inspect -u ${{ secrets.NEON_URL }}
+            

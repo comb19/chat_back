@@ -1,0 +1,43 @@
+name: migration_check 
+
+on:
+  push:
+  pull_request:
+    branches: ["develop"]
+
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ vars.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+        ports:
+          - ${{ vars.POSTGRES_PORT }}:5432
+        options: >-
+          --health-cmd "pg_isready"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Show ubuntu details
+        run: lsb_release -a
+      - name: which curl
+        run: which curl
+      - name: install atlas
+        run: curl -sSf https://atlasgo.sh | sh
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: schema inspect
+        run: atlas schema inspect -u ${{ secrets.NEON_URL }}
+      - name: schema apply dry-run 
+        run: atlas schema apply --dry-run -url ${{ secrets.NEON_URL }} --to "file://db/schema.sql" --dev-url postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
+            

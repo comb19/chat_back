@@ -34,10 +34,13 @@ func (au *authorizationUsecase) CheckPermission(db *gorm.DB, channelID string, t
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Authorized")
+
 	user, err := user.Get(context, claims.Subject)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Got user:", user.ID, user.Username)
 
 	userChannels, err := au.userChannelsRepository.Find(db, user.ID, channelID)
 	if err != nil {

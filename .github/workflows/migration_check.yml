@@ -43,5 +43,5 @@ jobs:
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
       - name: schema apply dry-run 
-        run: atlas schema apply --dry-run -url ${{ secrets.NEON_URL }} --to "file://db/schema.sql" --dev-url postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
+        run: atlas schema apply --dry-run --url ${{ secrets.NEON_URL }} --to "file://db/schema.sql" --dev-url postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
             

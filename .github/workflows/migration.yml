@@ -1,9 +1,7 @@
 name: migration 
 
 on:
-  push:
-  pull_request:
-    branches: ["develop"]
+  deployment:
 
   workflow_dispatch:
 
@@ -36,6 +34,6 @@ jobs:
         run: curl -sSf https://atlasgo.sh | sh
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
-      - name: schema inspect
-        run: atlas schema inspect -u postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
+      - name: schema apply dry-run 
+        run: atlas schema apply --auto-approve --url ${{ secrets.NEON_URL }} --to "file://db/schema.sql" --dev-url postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
             

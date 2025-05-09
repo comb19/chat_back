@@ -15,7 +15,7 @@ jobs:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: ${{ vars.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ vars.POSTGRES_PASS }}
+          POSTGRES_PASSWORD: ${{ vars.POSTGRES_PASSWPORD }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
         ports:
           - ${{ vars.POSTGRES_PORT }}:5432
@@ -37,5 +37,5 @@ jobs:
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
       - name: schema inspect
-        run: atlas schema inspect -u postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASS }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
+        run: atlas schema inspect -u postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
             

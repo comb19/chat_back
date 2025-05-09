@@ -32,8 +32,14 @@ jobs:
         run: which curl
       - name: install atlas
         run: curl -sSf https://atlasgo.sh | sh
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: check dir
+        run: ls -la
+      - name: check pwd
+        run: pwd
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
-      - name: schema apply dry-run 
+      - name: schema apply --auto-approve
         run: atlas schema apply --auto-approve --url ${{ secrets.NEON_URL }} --to "file://db/schema.sql" --dev-url postgres://${{ vars.POSTGRES_USER }}:${{ vars.POSTGRES_PASSWORD }}@localhost:5432/${{ vars.POSTGRES_DB }}?sslmode=disable
             

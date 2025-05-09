@@ -38,6 +38,8 @@ jobs:
         uses: actions/checkout@v4
       - name: check dir
         run: ls -la
+      - name: check pwd
+        run: pwd
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
       - name: schema apply dry-run 

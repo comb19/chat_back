@@ -36,6 +36,8 @@ jobs:
         run: curl -sSf https://atlasgo.sh | sh
       - name: Checkout
         uses: actions/checkout@v4
+      - name: check dir
+        run: ls -la
       - name: schema inspect
         run: atlas schema inspect -u ${{ secrets.NEON_URL }}
       - name: schema apply dry-run 

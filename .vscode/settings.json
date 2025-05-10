@@ -1,0 +1,8 @@
+{
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "[go]": {
+        "editor.defaultFormatter": "golang.go",
+        "editor.formatOnSave": true,
+    }
+}

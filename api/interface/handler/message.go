@@ -4,6 +4,7 @@ import (
 	"chat_back/usecase"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -23,11 +24,6 @@ const (
 	pingPeriod     = 1 * time.Second
 	pongWait       = 60 * time.Second
 	maxMessageSize = 4096
-)
-
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 type sentMessage struct {
@@ -72,48 +68,49 @@ type Client struct {
 	conn      *websocket.Conn
 	userID    string
 	channelID string
-	// send      chan []byte
-	send chan message
+	send      chan message
 }
 
 type Hub struct {
-	clients map[string]map[*Client]struct{}
-	// clients    map[*Client]struct{}
+	clients    map[string]map[*Client]struct{}
 	register   chan *Client
 	unregister chan *Client
-	// broadcast  chan []byte
-	broadcast chan message
+	broadcast  chan message
 }
 
 func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
-			fmt.Println("register")
+			slog.Debug("register a websocket connection")
+
 			if _, ok := h.clients[client.channelID]; !ok {
 				h.clients[client.channelID] = make(map[*Client]struct{})
 			}
 			h.clients[client.channelID][client] = struct{}{}
 
 		case client := <-h.unregister:
-			fmt.Println("unregister")
+			slog.Debug("unregister a websocket connection")
+
 			if _, ok := h.clients[client.channelID][client]; ok {
 				delete(h.clients[client.channelID], client)
 				close(client.send)
-				fmt.Printf("Websocket in %s closed", client.channelID)
+				slog.Debug(fmt.Sprintf("Websocket in %s closed", client.channelID))
+
 				if len(h.clients[client.channelID]) <= 0 {
 					delete(h.clients, client.channelID)
-					fmt.Printf("All websocket in %s closed", client.channelID)
+					slog.Debug(fmt.Sprintf("All websocket in %s closed", client.channelID))
 				}
 			}
 
 		case msg := <-h.broadcast:
-			fmt.Println("broadcast")
-			fmt.Println("msg", msg)
+			slog.Debug("broadcast")
+			slog.Debug(fmt.Sprintf("msg: %s", msg))
+
 			for client := range h.clients[msg.ChannelID] {
 				select {
 				case client.send <- msg:
-					fmt.Println("msg sent to ", client.channelID, client.userID)
+					slog.Debug(fmt.Sprintf("msg sent to %s by %s", client.channelID, client.userID))
 				default:
 					close(client.send)
 					delete(h.clients[client.channelID], client)
@@ -125,7 +122,8 @@ func (h *Hub) run() {
 }
 
 func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
-	fmt.Println("read pump")
+	slog.Debug("readPump")
+
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -139,26 +137,24 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 	})
 
 	for {
-		fmt.Println("reading")
 		_, rawMsg, err := c.conn.ReadMessage()
-		fmt.Println(string(rawMsg), err)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				fmt.Println("unexpected close error:", err)
+				slog.Debug(err.Error())
 			}
 			break
 		}
 
 		var msg message
 		if err := json.Unmarshal(rawMsg, &msg); err != nil {
-			fmt.Println("fail to unmarshal:", rawMsg)
+			slog.Debug(err.Error())
 			break
 		}
 		fmt.Println("read", msg)
 
 		insertedMsg, err := uc.Insert(msg.ChannelID, user.ID, msg.Content)
 		if err != nil {
-			fmt.Println("message insertion error", err)
+			slog.Debug(err.Error())
 			break
 		}
 
@@ -170,7 +166,7 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 }
 
 func (c *Client) writePump() {
-	fmt.Println("write pump")
+	slog.Debug("writePump")
 
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -179,10 +175,8 @@ func (c *Client) writePump() {
 	}()
 
 	for {
-		fmt.Println("writing", c.channelID)
 		select {
 		case msg, ok := <-c.send:
-			fmt.Println("get msg <- send")
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -191,7 +185,8 @@ func (c *Client) writePump() {
 
 			parsed_msg, err := json.Marshal(msg)
 			if err != nil {
-				fmt.Println("fail to marshal:", msg)
+				slog.Debug(err.Error())
+				continue
 			}
 
 			c.conn.WriteMessage(websocket.TextMessage, parsed_msg)
@@ -199,6 +194,7 @@ func (c *Client) writePump() {
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				slog.Debug(err.Error())
 				return
 			}
 		}
@@ -206,7 +202,7 @@ func (c *Client) writePump() {
 }
 
 func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCase usecase.AuthorizationUsecase) MessageHandler {
-	fmt.Println("NewMessageHandler")
+	slog.Debug("NewMessageHandler")
 
 	wsUpgrader := websocket.Upgrader{
 		ReadBufferSize:  4096,
@@ -214,12 +210,10 @@ func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCa
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
 	hub := Hub{
-		clients: map[string]map[*Client]struct{}{},
-		// clients:    make(map[*Client]struct{}),
+		clients:    map[string]map[*Client]struct{}{},
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		broadcast:  make(chan message),
-		// broadcast: make(chan []byte),
 	}
 	go hub.run()
 
@@ -232,17 +226,18 @@ func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCa
 }
 
 func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
-	fmt.Println("HandleMessageWebSocket")
+	slog.DebugContext(ctx, "HandleMessageWebSocket")
 
 	var messageURI messageURI
 	if err := ctx.ShouldBindUri(&messageURI); err != nil {
-		fmt.Println("Error binding URI:", err)
+		slog.ErrorContext(ctx, err.Error())
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 
 	conn, err := mh.wsUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
 		fmt.Println("websocket upgrade err:", err)
 		return
 	}
@@ -252,19 +247,19 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 
 	msgType, msg, err := conn.ReadMessage()
 	if err != nil {
-		fmt.Println("authorization msg", err)
+		slog.ErrorContext(ctx, err.Error())
 		conn.Close()
 		return
 	}
 	if msgType != websocket.TextMessage {
-		fmt.Println("authorization msg", msgType)
+		slog.ErrorContext(ctx, fmt.Sprintf("authorization msg: %d", msgType))
 		conn.Close()
 		return
 	}
 
 	var authorizationMessage authorizationMessage
 	if err := json.Unmarshal(msg, &authorizationMessage); err != nil {
-		fmt.Println("Error unmarshalling message:", err)
+		slog.ErrorContext(ctx, err.Error())
 		conn.Close()
 		return
 	}
@@ -277,7 +272,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 
 	user, err := mh.authorizationUseCase.CheckPermission(authorizationMessage.ChannelID, authorizationMessage.Token)
 	if err != nil {
-		fmt.Println("Error checking permission:", err)
+		slog.ErrorContext(ctx, err.Error())
 		conn.Close()
 		return
 	}

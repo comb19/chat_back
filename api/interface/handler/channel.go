@@ -3,6 +3,7 @@ package handler
 import (
 	"chat_back/usecase"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/clerk/clerk-sdk-go/v2"
@@ -49,7 +50,7 @@ func NewChannelHandler(channelUseCase usecase.ChannelUsecase) ChannelHandler {
 }
 
 func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
-	fmt.Println("HandleInsert")
+	slog.DebugContext(ctx, "HandleInsert")
 
 	var channel RequestChannel
 	if err := ctx.BindJSON(&channel); err != nil {
@@ -88,7 +89,7 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 }
 
 func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
-	fmt.Println("HandleGetByID")
+	slog.DebugContext(ctx, "HandleGetByID")
 
 	var uri channelURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {
@@ -112,7 +113,7 @@ func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
 }
 
 func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
-	fmt.Println("HandleGetAllInGuild")
+	slog.DebugContext(ctx, "HandleGetAllInGuild")
 
 	var uri guildURI
 	if err := ctx.ShouldBindUri(&uri); err != nil {

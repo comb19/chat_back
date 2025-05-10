@@ -27,11 +27,27 @@ type EnvVar struct {
 	SvixSecKey  string `env:"SVIX_SECRET_KEY"`
 }
 
+var contextKeys = []string{"user"}
+
 type LogHandler struct {
 	slog.Handler
 }
 
 func (lh *LogHandler) Handle(ctx context.Context, r slog.Record) error {
+	for _, key := range contextKeys {
+		if val := ctx.Value(key); val != nil {
+			switch key {
+			case "user":
+				if user, ok := val.(*clerk.User); ok {
+					r.AddAttrs(slog.Attr{Key: string(key), Value: slog.StringValue(fmt.Sprintf("id:%s name:%s", user.ID, *user.Username))})
+				} else {
+					r.AddAttrs(slog.Attr{Key: string(key), Value: slog.AnyValue(val)})
+				}
+			default:
+				r.AddAttrs(slog.Attr{Key: string(key), Value: slog.AnyValue(val)})
+			}
+		}
+	}
 	return lh.Handler.Handle(ctx, r)
 }
 
@@ -40,36 +56,39 @@ func InitLog() {
 		clog.New(
 			clog.WithColor(true),
 			clog.WithSource(true),
-		)})
+			clog.WithLevel(slog.LevelDebug),
+		),
+	})
 	slog.SetDefault(logger)
 }
 
 func authenticationMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		slog.DebugContext(ctx, "authenticationMiddleware")
+
 		sessionToken := strings.TrimPrefix(ctx.Request.Header.Get("Authorization"), "Bearer ")
 		claims, err := jwt.Verify(ctx.Request.Context(), &jwt.VerifyParams{
 			Token: sessionToken,
 		})
 		if err != nil {
-			fmt.Println("unauthorized")
-			fmt.Println(err)
+			slog.Error("unauthorized")
+			slog.Error(err.Error())
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 			return
 		}
 
 		user, err := clerkUser.Get(ctx.Request.Context(), claims.Subject)
 		if err != nil {
-			fmt.Println("user not found")
-			fmt.Println(err)
+			slog.Error("user not found")
+			slog.Error(err.Error())
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
 
-		fmt.Println("authorized:", user.Username)
-		fmt.Println(user)
-
 		ctx.Set("user", user)
 		ctx.Next()
+
+		slog.InfoContext(ctx, "authorized")
 	}
 }
 
@@ -78,16 +97,15 @@ func Run() {
 
 	slog.Info("Run")
 
-	var env_var EnvVar
-	if err := env.Parse(&env_var); err != nil {
-		fmt.Println(err)
+	var envVar EnvVar
+	if err := env.Parse(&envVar); err != nil {
+		panic(err)
 	}
 
-	clerk.SetKey(env_var.ClerkSecKey)
+	clerk.SetKey(envVar.ClerkSecKey)
 
-	wh, err := svix.NewWebhook(env_var.SvixSecKey)
+	wh, err := svix.NewWebhook(envVar.SvixSecKey)
 	if err != nil {
-		fmt.Println("Error creating webhook:", err)
 		panic(err)
 	}
 
@@ -111,7 +129,7 @@ func Run() {
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{env_var.FrontendUrl},
+		AllowOrigins:     []string{envVar.FrontendUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: false,
@@ -134,7 +152,7 @@ func Run() {
 	router.GET("/ws/messages/:channelID", messageHandler.HandleMessageWebSocket)
 
 	router.GET("/ping", func(ctx *gin.Context) {
-		fmt.Println("pong")
+		slog.Info("pong")
 		ctx.String(http.StatusOK, "pong")
 	})
 

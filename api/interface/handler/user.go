@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,34 +37,34 @@ type user struct {
 }
 
 func (uh *userHandler) HandleCreateUserByClerk(ctx *gin.Context) {
+	slog.InfoContext(ctx, "HandleCreateUserByClerk")
+
 	headers := ctx.Request.Header
 	payload, err := io.ReadAll(ctx.Request.Body)
 	if err != nil {
-		fmt.Println("Error reading request body:", err)
+		slog.ErrorContext(ctx, err.Error())
 		ctx.String(http.StatusBadRequest, "Bad Request")
 		return
 	}
 
 	if err := uh.wh.Verify(payload, headers); err != nil {
-		fmt.Println("Error verifying webhook:", err)
+		slog.ErrorContext(ctx, err.Error())
 		ctx.String(http.StatusBadRequest, "Bad Request")
 		return
 	}
 
-	fmt.Println("Webhook verified successfully")
-	fmt.Println(headers)
-	fmt.Println(string(payload))
+	slog.InfoContext(ctx, "Webhook verified successfully")
 
 	var user user
 	if err := json.Unmarshal(payload, &user); err != nil {
-		fmt.Println("Error binding JSON:", err)
+		slog.ErrorContext(ctx, err.Error())
 		ctx.String(http.StatusBadRequest, "Bad Request")
 		return
 	}
 	fmt.Println(user)
 
 	if _, err := uh.userUseCase.CreateUserByClerk(user.Data.ID, user.Data.UserName); err != nil {
-		fmt.Println("Error creating user:", err)
+		slog.ErrorContext(ctx, err.Error())
 		ctx.String(http.StatusInternalServerError, "Failed to create user")
 		return
 	}

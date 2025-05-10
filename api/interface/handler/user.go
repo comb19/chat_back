@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	svix "github.com/svix/svix-webhooks/go"
-	"gorm.io/gorm"
 )
 
 type UserHandler interface {
@@ -18,14 +17,12 @@ type UserHandler interface {
 }
 
 type userHandler struct {
-	db          *gorm.DB
 	wh          *svix.Webhook
 	userUseCase usecase.UserUsecase
 }
 
-func NewUserHandler(db *gorm.DB, wh *svix.Webhook, userUseCase usecase.UserUsecase) UserHandler {
+func NewUserHandler(wh *svix.Webhook, userUseCase usecase.UserUsecase) UserHandler {
 	return &userHandler{
-		db:          db,
 		wh:          wh,
 		userUseCase: userUseCase,
 	}
@@ -65,7 +62,7 @@ func (uh *userHandler) HandleCreateUserByClerk(ctx *gin.Context) {
 	}
 	fmt.Println(user)
 
-	if _, err := uh.userUseCase.CreateUserByClerk(uh.db, user.Data.ID, user.Data.UserName); err != nil {
+	if _, err := uh.userUseCase.CreateUserByClerk(user.Data.ID, user.Data.UserName); err != nil {
 		fmt.Println("Error creating user:", err)
 		ctx.String(http.StatusInternalServerError, "Failed to create user")
 		return

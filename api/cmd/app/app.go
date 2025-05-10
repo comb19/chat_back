@@ -71,18 +71,18 @@ func Run() {
 
 	userPersistence := persistence.NewUserPersistence(db)
 	userUseCase := usecase.NewUserUsecase(userPersistence)
-	userHandler := handler.NewUserHandler(db, wh, userUseCase)
+	userHandler := handler.NewUserHandler(wh, userUseCase)
 
 	userChannelsPersistence := persistence.NewUserChannelsPersistence(db)
 	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
 
 	messagePersistence := persistence.NewMessagePersistence(db)
 	messageUseCase := usecase.NewMessageUsecase(messagePersistence)
-	messageHandler := handler.NewMessageHandler(db, messageUseCase, authorizationUseCase)
+	messageHandler := handler.NewMessageHandler(messageUseCase, authorizationUseCase)
 
 	channelPersistence := persistence.NewChannelPersistence(db)
 	channelUseCase := usecase.NewChannelUsecase(userChannelsPersistence, channelPersistence)
-	channelHandler := handler.NewChannelHandler(db, channelUseCase)
+	channelHandler := handler.NewChannelHandler(channelUseCase)
 
 	router := gin.Default()
 

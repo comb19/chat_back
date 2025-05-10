@@ -18,9 +18,9 @@ func NewUserChannelsPersistence(db *gorm.DB) repository.UserChannelsRepository {
 	}
 }
 
-func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
+func (ccp *userChannelsPersistence) Insert(userID string, channelID string) (*model.UserChannels, error) {
 	fmt.Println("Inserting user channel:", userID, channelID)
-	if userChannels, err := c.Find(db, userID, channelID); err != nil {
+	if userChannels, err := ccp.Find(userID, channelID); err != nil {
 		return nil, err
 	} else if userChannels != nil {
 		return userChannels, fmt.Errorf("user %s is already a member of channel %s", userID, channelID)
@@ -29,16 +29,16 @@ func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID s
 		UserID:    userID,
 		ChannelID: channelID,
 	}
-	if err := db.Create(userChannels).Error; err != nil {
+	if err := ccp.db.Create(userChannels).Error; err != nil {
 		return nil, err
 	}
 	fmt.Println("User channel created:", userChannels)
 	return userChannels, nil
 }
 
-func (c *userChannelsPersistence) Find(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {
+func (ccp *userChannelsPersistence) Find(userID string, channelID string) (*model.UserChannels, error) {
 	var userChannels model.UserChannels
-	result := db.Where("user_id = ? AND channel_id = ?", userID, channelID).FirstOrInit(&userChannels)
+	result := ccp.db.Where("user_id = ? AND channel_id = ?", userID, channelID).FirstOrInit(&userChannels)
 	if result.Error != nil {
 		fmt.Println(result.Error)
 		return nil, result.Error

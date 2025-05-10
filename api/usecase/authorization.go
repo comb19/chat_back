@@ -8,11 +8,10 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/clerk/clerk-sdk-go/v2/jwt"
 	"github.com/clerk/clerk-sdk-go/v2/user"
-	"gorm.io/gorm"
 )
 
 type AuthorizationUsecase interface {
-	CheckPermission(db *gorm.DB, channelID string, token string) (*clerk.User, error)
+	CheckPermission(channelID string, token string) (*clerk.User, error)
 }
 
 type authorizationUsecase struct {
@@ -25,7 +24,7 @@ func NewAuthorizationUsecase(userChannelsRepository repository.UserChannelsRepos
 	}
 }
 
-func (au *authorizationUsecase) CheckPermission(db *gorm.DB, channelID string, token string) (*clerk.User, error) {
+func (au *authorizationUsecase) CheckPermission(channelID string, token string) (*clerk.User, error) {
 	fmt.Println("CheckPermission")
 	context := context.Background()
 	claims, err := jwt.Verify(context, &jwt.VerifyParams{
@@ -42,7 +41,7 @@ func (au *authorizationUsecase) CheckPermission(db *gorm.DB, channelID string, t
 	}
 	fmt.Println("Got user:", user.ID, user.Username)
 
-	userChannels, err := au.userChannelsRepository.Find(db, user.ID, channelID)
+	userChannels, err := au.userChannelsRepository.Find(user.ID, channelID)
 	if err != nil {
 		return nil, err
 	}

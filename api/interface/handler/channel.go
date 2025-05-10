@@ -7,7 +7,6 @@ import (
 
 	"github.com/clerk/clerk-sdk-go/v2"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type channelURI struct {
@@ -40,13 +39,11 @@ type ChannelHandler interface {
 }
 
 type channelHandler struct {
-	db             *gorm.DB
 	channelUseCase usecase.ChannelUsecase
 }
 
-func NewChannelHandler(db *gorm.DB, channelUseCase usecase.ChannelUsecase) ChannelHandler {
+func NewChannelHandler(channelUseCase usecase.ChannelUsecase) ChannelHandler {
 	return &channelHandler{
-		db:             db,
 		channelUseCase: channelUseCase,
 	}
 }
@@ -74,7 +71,7 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 		return
 	}
 
-	newChannel, err := ch.channelUseCase.Insert(ch.db, channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
+	newChannel, err := ch.channelUseCase.Insert(channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
 	if err != nil {
 		fmt.Println(err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert channel"})
@@ -99,7 +96,7 @@ func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
 		return
 	}
 
-	channel, err := ch.channelUseCase.GetByID(ch.db, uri.ID)
+	channel, err := ch.channelUseCase.GetByID(uri.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get channel"})
 		return
@@ -123,7 +120,7 @@ func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
 		return
 	}
 
-	channels, err := ch.channelUseCase.GetAllInGuild(ch.db, &uri.ID)
+	channels, err := ch.channelUseCase.GetAllInGuild(&uri.ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get channels"})
 		return

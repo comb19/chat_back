@@ -8,10 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type userChannelsPersistence struct{}
+type userChannelsPersistence struct {
+	db *gorm.DB
+}
 
-func NewUserChannelsPersistence() repository.UserChannelsRepository {
-	return &userChannelsPersistence{}
+func NewUserChannelsPersistence(db *gorm.DB) repository.UserChannelsRepository {
+	return &userChannelsPersistence{
+		db: db,
+	}
 }
 
 func (c *userChannelsPersistence) Insert(db *gorm.DB, userID string, channelID string) (*model.UserChannels, error) {

@@ -7,10 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type userPersistence struct{}
+type userPersistence struct {
+	db *gorm.DB
+}
 
-func NewUserPersistence() repository.UserRepository {
-	return &userPersistence{}
+func NewUserPersistence(db *gorm.DB) repository.UserRepository {
+	return &userPersistence{
+		db: db,
+	}
 }
 
 func (up userPersistence) Insert(db *gorm.DB, id, userName string) (*model.User, error) {

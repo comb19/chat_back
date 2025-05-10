@@ -8,10 +8,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type messagePersistence struct{}
+type messagePersistence struct {
+	db *gorm.DB
+}
 
-func NewMessagePersistence() repository.MessageRepository {
-	return &messagePersistence{}
+func NewMessagePersistence(db *gorm.DB) repository.MessageRepository {
+	return &messagePersistence{
+		db: db,
+	}
 }
 
 func (mp messagePersistence) Insert(db *gorm.DB, channelID string, userID string, content string) (*model.Message, error) {

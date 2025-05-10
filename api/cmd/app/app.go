@@ -151,7 +151,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/channels", func(ctx *gin.Context) {})
 		authorized.GET("/channels/:channelID", func(ctx *gin.Context) {})
 		authorized.POST("/channels", channelHandler.HandleInsert)
-		authorized.PUT("/channels/:channelID", func(ctx *gin.Context) {})
+		authorized.POST("/channels/:channelID/users", channelHandler.HandleAddUserToChannel)
 		authorized.DELETE("/channels/:channelID", func(ctx *gin.Context) {})
 	}
 

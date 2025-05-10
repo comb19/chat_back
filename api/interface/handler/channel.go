@@ -11,15 +11,15 @@ import (
 )
 
 type usersRequestBody struct {
-	UserIDs []string `uri:"user_id" binding:"required"`
+	UserIDs []string `json:"user_ids" binding:"required"`
 }
 
 type channelURI struct {
-	ID string `uri:"channel_id" binding:"required, uuid"`
+	ID string `uri:"channelID" binding:"required,uuid"`
 }
 
 type guildURI struct {
-	ID string `uri:"guild_id" binding:"required, uuid"`
+	ID string `uri:"guildID" binding:"required,uuid"`
 }
 
 type RequestChannel struct {
@@ -41,6 +41,7 @@ type ChannelHandler interface {
 	HandleInsert(ctx *gin.Context)
 	HandleGetByID(ctx *gin.Context)
 	HandleGetAllInGuild(ctx *gin.Context)
+	HandleAddUserToChannel(ctx *gin.Context)
 }
 
 type channelHandler struct {
@@ -58,6 +59,7 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 
 	var channel RequestChannel
 	if err := ctx.BindJSON(&channel); err != nil {
+		slog.ErrorContext(ctx, err.Error())
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request",
 		})
@@ -147,12 +149,14 @@ func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
 
 func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleAddUserToChannel")
+	slog.DebugContext(ctx, ctx.Request.URL.RawPath)
 
 	var uri channelURI
 	if err := ctx.BindUri(&uri); err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
-
 	var userRequestBody usersRequestBody
 	if err := ctx.BindJSON(&userRequestBody); err != nil {
 		return
@@ -164,5 +168,5 @@ func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusAccepted)
+	ctx.Status(http.StatusCreated)
 }

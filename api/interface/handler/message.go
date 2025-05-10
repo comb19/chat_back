@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"gorm.io/gorm"
 )
 
 const (
@@ -62,7 +61,6 @@ type MessageHandler interface {
 }
 
 type messageHandler struct {
-	db                   *gorm.DB
 	wsUpgrader           *websocket.Upgrader
 	hub                  *Hub
 	messageUseCase       usecase.MessageUsecase
@@ -126,7 +124,7 @@ func (h *Hub) run() {
 	}
 }
 
-func (c *Client) readPump(db *gorm.DB, uc usecase.MessageUsecase, user *clerk.User) {
+func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 	fmt.Println("read pump")
 	defer func() {
 		c.hub.unregister <- c
@@ -158,7 +156,7 @@ func (c *Client) readPump(db *gorm.DB, uc usecase.MessageUsecase, user *clerk.Us
 		}
 		fmt.Println("read", msg)
 
-		insertedMsg, err := uc.Insert(db, msg.ChannelID, user.ID, msg.Content)
+		insertedMsg, err := uc.Insert(msg.ChannelID, user.ID, msg.Content)
 		if err != nil {
 			fmt.Println("message insertion error", err)
 			break
@@ -207,7 +205,7 @@ func (c *Client) writePump() {
 	}
 }
 
-func NewMessageHandler(db *gorm.DB, messageUseCase usecase.MessageUsecase, authorizationUseCase usecase.AuthorizationUsecase) MessageHandler {
+func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCase usecase.AuthorizationUsecase) MessageHandler {
 	fmt.Println("NewMessageHandler")
 
 	wsUpgrader := websocket.Upgrader{
@@ -226,7 +224,6 @@ func NewMessageHandler(db *gorm.DB, messageUseCase usecase.MessageUsecase, autho
 	go hub.run()
 
 	return &messageHandler{
-		db:                   db,
 		wsUpgrader:           &wsUpgrader,
 		hub:                  &hub,
 		messageUseCase:       messageUseCase,
@@ -278,7 +275,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 		return
 	}
 
-	user, err := mh.authorizationUseCase.CheckPermission(mh.db, authorizationMessage.ChannelID, authorizationMessage.Token)
+	user, err := mh.authorizationUseCase.CheckPermission(authorizationMessage.ChannelID, authorizationMessage.Token)
 	if err != nil {
 		fmt.Println("Error checking permission:", err)
 		conn.Close()
@@ -291,7 +288,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 	}
 
 	go client.writePump()
-	go client.readPump(mh.db, mh.messageUseCase, user)
+	go client.readPump(mh.messageUseCase, user)
 
 }
 
@@ -304,7 +301,7 @@ func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
 		return
 	}
 
-	message, err := mh.messageUseCase.GetByID(mh.db, messageURI.ChannelID)
+	message, err := mh.messageUseCase.GetByID(messageURI.ChannelID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get message"})
 		return
@@ -322,7 +319,7 @@ func (mh messageHandler) HandleMessageInChannel(ctx *gin.Context) {
 	}
 	fmt.Println("channelID", messageURI.ChannelID)
 
-	messages, err := mh.messageUseCase.GetAllInChannel(mh.db, messageURI.ChannelID)
+	messages, err := mh.messageUseCase.GetAllInChannel(messageURI.ChannelID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get messages"})
 		return

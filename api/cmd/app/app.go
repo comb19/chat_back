@@ -5,7 +5,9 @@ import (
 	"chat_back/infrastructure/persistence"
 	"chat_back/interface/handler"
 	"chat_back/usecase"
+	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -15,6 +17,7 @@ import (
 	clerkUser "github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/m-mizutani/clog"
 	svix "github.com/svix/svix-webhooks/go"
 )
 
@@ -22,6 +25,23 @@ type EnvVar struct {
 	ClerkSecKey string `env:"CLERK_SECRET_KEY"`
 	FrontendUrl string `env:"FRONTEND_URL"`
 	SvixSecKey  string `env:"SVIX_SECRET_KEY"`
+}
+
+type LogHandler struct {
+	slog.Handler
+}
+
+func (lh *LogHandler) Handle(ctx context.Context, r slog.Record) error {
+	return lh.Handler.Handle(ctx, r)
+}
+
+func InitLog() {
+	logger := slog.New(&LogHandler{
+		clog.New(
+			clog.WithColor(true),
+			clog.WithSource(true),
+		)})
+	slog.SetDefault(logger)
 }
 
 func authenticationMiddleware() gin.HandlerFunc {
@@ -54,6 +74,10 @@ func authenticationMiddleware() gin.HandlerFunc {
 }
 
 func Run() {
+	InitLog()
+
+	slog.Info("Run")
+
 	var env_var EnvVar
 	if err := env.Parse(&env_var); err != nil {
 		fmt.Println(err)

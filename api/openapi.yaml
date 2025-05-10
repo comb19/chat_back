@@ -1,0 +1,29 @@
+openapi: "3.0.3"
+
+info:
+  title: "chat api"
+  description: "チャットアプリのAPIです。"
+  version: "1.0.0"
+
+servers:
+  - url: "http://localhost:8080"
+    description: "development"
+
+
+tags:
+  - name: "users"
+    description: "ユーザーの操作"
+  - name: "guilds"
+    description: "ギルドの操作"
+  - name: "channels"
+    description: "チャンネルの操作"
+  - name: "messages"
+    description: "メッセージの操作"
+
+paths:
+  "/users":
+    post:
+      summary: "ユーザーの追加"
+      tags: ["users"]
+  
+  

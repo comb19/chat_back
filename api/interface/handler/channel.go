@@ -10,6 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type usersRequestBody struct {
+	UserIDs []string `uri:"user_id" binding:"required"`
+}
+
 type channelURI struct {
 	ID string `uri:"channel_id" binding:"required, uuid"`
 }
@@ -139,4 +143,26 @@ func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, responseChannels)
+}
+
+func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleAddUserToChannel")
+
+	var uri channelURI
+	if err := ctx.BindUri(&uri); err != nil {
+		return
+	}
+
+	var userRequestBody usersRequestBody
+	if err := ctx.BindJSON(&userRequestBody); err != nil {
+		return
+	}
+
+	_, err := ch.channelUseCase.AddUserToChannel(uri.ID, userRequestBody.UserIDs)
+	if err != nil {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	ctx.Status(http.StatusAccepted)
 }

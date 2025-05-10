@@ -99,7 +99,7 @@ func authenticationMiddleware() gin.HandlerFunc {
 	}
 }
 
-func Run() {
+func SetupRouter() *gin.Engine {
 	var envVar EnvVar
 	if err := env.Parse(&envVar); err != nil {
 		panic(err)
@@ -163,6 +163,12 @@ func Run() {
 		slog.Info("pong")
 		ctx.String(http.StatusOK, "pong")
 	})
+
+	return router
+}
+
+func Run() {
+	router := SetupRouter()
 
 	router.Run("0.0.0.0:8080")
 }

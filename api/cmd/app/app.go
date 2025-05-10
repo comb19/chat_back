@@ -22,9 +22,10 @@ import (
 )
 
 type EnvVar struct {
-	ClerkSecKey string `env:"CLERK_SECRET_KEY"`
-	FrontendUrl string `env:"FRONTEND_URL"`
-	SvixSecKey  string `env:"SVIX_SECRET_KEY"`
+	Development bool   `env:"DEVELOPMENT" envDefault:"false"`
+	ClerkSecKey string `env:"CLERK_SECRET_KEY,notEmpty"`
+	FrontendUrl string `env:"FRONTEND_URL,notEmpty"`
+	SvixSecKey  string `env:"SVIX_SECRET_KEY,notEmpty"`
 }
 
 var contextKeys = []string{"user"}
@@ -51,12 +52,18 @@ func (lh *LogHandler) Handle(ctx context.Context, r slog.Record) error {
 	return lh.Handler.Handle(ctx, r)
 }
 
-func InitLog() {
+func InitLog(development bool) {
+	var slogLevel slog.Level
+	if development {
+		slogLevel = slog.LevelDebug
+	} else {
+		slogLevel = slog.LevelInfo
+	}
 	logger := slog.New(&LogHandler{
 		clog.New(
 			clog.WithColor(true),
 			clog.WithSource(true),
-			clog.WithLevel(slog.LevelDebug),
+			clog.WithLevel(slogLevel),
 		),
 	})
 	slog.SetDefault(logger)
@@ -93,14 +100,15 @@ func authenticationMiddleware() gin.HandlerFunc {
 }
 
 func Run() {
-	InitLog()
-
-	slog.Info("Run")
-
 	var envVar EnvVar
 	if err := env.Parse(&envVar); err != nil {
 		panic(err)
 	}
+	fmt.Println(envVar.Development)
+
+	InitLog(envVar.Development)
+
+	slog.Info("Run")
 
 	clerk.SetKey(envVar.ClerkSecKey)
 

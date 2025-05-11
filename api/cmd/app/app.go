@@ -160,7 +160,7 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/channels/:channelID/users", channelHandler.HandleAddUserToChannel)
 		authorized.GET("/channels/:channelID/messages", func(ctx *gin.Context) {})
 
-		authorized.GET("/guilds", func(ctx *gin.Context) {})
+		authorized.GET("/guilds", guildHandler.HandleGetGuilds)
 		authorized.POST("/guilds", guildHandler.HandlePostGuilds)
 		authorized.GET("/guilds/:guildID", func(ctx *gin.Context) {})
 		authorized.PUT("/guilds/:guildID", func(ctx *gin.Context) {})

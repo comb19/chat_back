@@ -8,6 +8,7 @@ import (
 type GuildUseCase interface {
 	CreateNewGuild(name, description, ownerID string) (*model.Guild, error)
 	GetGuildByID(id string) (*model.Guild, error)
+	GetGuildsOfUser(userID string) ([]*model.Guild, error)
 }
 
 type guildUseCase struct {
@@ -34,4 +35,8 @@ func (gu guildUseCase) GetGuildByID(id string) (*model.Guild, error) {
 		return nil, err
 	}
 	return guild, nil
+}
+
+func (gu guildUseCase) GetGuildsOfUser(userID string) ([]*model.Guild, error) {
+	return gu.guildRepository.FindOfUser(userID)
 }

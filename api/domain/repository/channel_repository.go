@@ -2,12 +2,10 @@ package repository
 
 import (
 	"chat_back/domain/model"
-
-	"gorm.io/gorm"
 )
 
 type ChannelRepository interface {
-	Insert(db *gorm.DB, name string, description string, private bool, guildID *string) (*model.Channel, error)
-	GetByID(db *gorm.DB, id string) (*model.Channel, error)
-	GetAllInGuild(db *gorm.DB, guildID *string) ([]model.Channel, error)
+	Insert(name string, description string, private bool, guildID *string) (*model.Channel, error)
+	GetByID(id string) (*model.Channel, error)
+	GetAllInGuild(guildID *string) ([]model.Channel, error)
 }

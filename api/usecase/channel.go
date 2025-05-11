@@ -3,14 +3,14 @@ package usecase
 import (
 	"chat_back/domain/model"
 	"chat_back/domain/repository"
-
-	"gorm.io/gorm"
+	"fmt"
 )
 
 type ChannelUsecase interface {
-	Insert(db *gorm.DB, name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
-	GetByID(db *gorm.DB, id string) (*model.Channel, error)
-	GetAllInGuild(db *gorm.DB, guildID *string) ([]model.Channel, error)
+	Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
+	GetByID(id string) (*model.Channel, error)
+	GetAllInGuild(guildID *string) ([]model.Channel, error)
+	AddUserToChannel(id string, userIDs []string) (*model.Channel, error)
 }
 
 type channelUseCase struct {
@@ -25,13 +25,13 @@ func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository,
 	}
 }
 
-func (cu channelUseCase) Insert(db *gorm.DB, name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error) {
-	channel, err := cu.channelRepository.Insert(db, name, description, public, guildID)
+func (cu channelUseCase) Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error) {
+	channel, err := cu.channelRepository.Insert(name, description, public, guildID)
 	if err != nil {
 		return nil, err
 	}
 
-	userChannels, err := cu.userChannelsRespository.Insert(db, ownerID, channel.ID)
+	userChannels, err := cu.userChannelsRespository.Insert(ownerID, channel.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -41,18 +41,36 @@ func (cu channelUseCase) Insert(db *gorm.DB, name string, description string, pu
 	return channel, nil
 }
 
-func (cu channelUseCase) GetByID(db *gorm.DB, id string) (*model.Channel, error) {
-	channel, err := cu.channelRepository.GetByID(db, id)
+func (cu channelUseCase) GetByID(id string) (*model.Channel, error) {
+	channel, err := cu.channelRepository.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 	return channel, nil
 }
 
-func (cu channelUseCase) GetAllInGuild(db *gorm.DB, guildID *string) ([]model.Channel, error) {
-	channels, err := cu.channelRepository.GetAllInGuild(db, guildID)
+func (cu channelUseCase) GetAllInGuild(guildID *string) ([]model.Channel, error) {
+	channels, err := cu.channelRepository.GetAllInGuild(guildID)
 	if err != nil {
 		return nil, err
 	}
 	return channels, nil
+}
+
+func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.Channel, error) {
+	channel, err := cu.channelRepository.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if channel == nil {
+		return nil, fmt.Errorf("channel %s is not found", id)
+	}
+
+	for _, userID := range userIDs {
+		userChannel, err := cu.userChannelsRespository.Insert(userID, id)
+		if err != nil || userChannel == nil {
+			continue
+		}
+	}
+	return channel, nil
 }

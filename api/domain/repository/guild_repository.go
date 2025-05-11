@@ -1,6 +1,8 @@
 package repository
 
+import "chat_back/domain/model"
+
 type GuildRepository interface {
-	Insert(guildID string, name string) error
-	GetByID(guildID string) (string, error)
+	Insert(name, description string) (*model.Guild, error)
+	Find(id string) (*model.Guild, error)
 }

@@ -22,6 +22,7 @@ type ResponseGuild struct {
 
 type GuildHandler interface {
 	HandlePostGuilds(ctx *gin.Context)
+	HandleGetGuilds(ctx *gin.Context)
 }
 
 type guildHandler struct {
@@ -64,4 +65,36 @@ func (gh guildHandler) HandlePostGuilds(ctx *gin.Context) {
 		Name:        guild.Name,
 		Description: guild.Description,
 	})
+}
+
+func (gh guildHandler) HandleGetGuilds(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleGetGuilds")
+
+	tempUser, ok := ctx.Get("user")
+	if !ok {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	guilds, err := gh.guildUseCase.GetGuildsOfUser(user.ID)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	responseGuilds := make([]ResponseGuild, len(guilds))
+	for index, guild := range guilds {
+		responseGuilds[index] = ResponseGuild{
+			ID:          guild.ID,
+			Name:        guild.Name,
+			Description: guild.Description,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, responseGuilds)
 }

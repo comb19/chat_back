@@ -75,3 +75,23 @@ func TestPostGuild(t *testing.T) {
 	assert.Equal(t, requestGuild.Name, responseGuild.Name)
 	assert.Equal(t, requestGuild.Description, responseGuild.Description)
 }
+
+func TestGetGuilds(t *testing.T) {
+	const userID = "user_2wtyaUmmGOlugFuP6h89SS4Pej3"
+
+	token, err := utils.FetchClerkToken(userID)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	router := app.SetupRouter()
+
+	// 正例
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/guilds", nil)
+	req.Header.Set("Authorization", "Bearer "+*token)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+}

@@ -37,7 +37,7 @@ func (cp *channelPersistence) Insert(name string, description string, private bo
 
 func (cp *channelPersistence) GetByID(id string) (*model.Channel, error) {
 	var channel model.Channel
-	result := cp.db.First(&channel, id)
+	result := cp.db.Where("id = ?", id).First(&channel)
 	if result.Error != nil {
 		return nil, result.Error
 	}

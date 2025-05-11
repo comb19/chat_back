@@ -99,7 +99,7 @@ func authenticationMiddleware() gin.HandlerFunc {
 	}
 }
 
-func Run() {
+func SetupRouter() *gin.Engine {
 	var envVar EnvVar
 	if err := env.Parse(&envVar); err != nil {
 		panic(err)
@@ -151,7 +151,7 @@ func Run() {
 		authorized.GET("/channels", func(ctx *gin.Context) {})
 		authorized.GET("/channels/:channelID", func(ctx *gin.Context) {})
 		authorized.POST("/channels", channelHandler.HandleInsert)
-		authorized.PUT("/channels/:channelID", func(ctx *gin.Context) {})
+		authorized.POST("/channels/:channelID/users", channelHandler.HandleAddUserToChannel)
 		authorized.DELETE("/channels/:channelID", func(ctx *gin.Context) {})
 	}
 
@@ -163,6 +163,12 @@ func Run() {
 		slog.Info("pong")
 		ctx.String(http.StatusOK, "pong")
 	})
+
+	return router
+}
+
+func Run() {
+	router := SetupRouter()
 
 	router.Run("0.0.0.0:8080")
 }

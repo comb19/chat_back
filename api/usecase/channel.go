@@ -3,12 +3,14 @@ package usecase
 import (
 	"chat_back/domain/model"
 	"chat_back/domain/repository"
+	"fmt"
 )
 
 type ChannelUsecase interface {
 	Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
 	GetByID(id string) (*model.Channel, error)
 	GetAllInGuild(guildID *string) ([]model.Channel, error)
+	AddUserToChannel(id string, userIDs []string) (*model.Channel, error)
 }
 
 type channelUseCase struct {
@@ -53,4 +55,22 @@ func (cu channelUseCase) GetAllInGuild(guildID *string) ([]model.Channel, error)
 		return nil, err
 	}
 	return channels, nil
+}
+
+func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.Channel, error) {
+	channel, err := cu.channelRepository.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if channel == nil {
+		return nil, fmt.Errorf("channel %s is not found", id)
+	}
+
+	for _, userID := range userIDs {
+		userChannel, err := cu.userChannelsRespository.Insert(userID, id)
+		if err != nil || userChannel == nil {
+			continue
+		}
+	}
+	return channel, nil
 }

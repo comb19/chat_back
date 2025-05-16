@@ -10,17 +10,20 @@ type ChannelUsecase interface {
 	Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
 	GetByID(id string) (*model.Channel, error)
 	AddUserToChannel(id string, userIDs []string) (*model.Channel, error)
+	GetMessagesOfChannel(id, userID string) (*[]*model.Message, error)
 }
 
 type channelUseCase struct {
 	userChannelsRespository repository.UserChannelsRepository
 	channelRepository       repository.ChannelRepository
+	messageRepository       repository.MessageRepository
 }
 
-func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository, channelRepository repository.ChannelRepository) ChannelUsecase {
+func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository, channelRepository repository.ChannelRepository, messageRepository repository.MessageRepository) ChannelUsecase {
 	return &channelUseCase{
 		userChannelsRespository: userChannelsRepository,
 		channelRepository:       channelRepository,
+		messageRepository:       messageRepository,
 	}
 }
 
@@ -64,4 +67,20 @@ func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.C
 		}
 	}
 	return channel, nil
+}
+
+func (cu channelUseCase) GetMessagesOfChannel(id, userID string) (*[]*model.Message, error) {
+	userChannels, err := cu.userChannelsRespository.Find(userID, id)
+	if err != nil {
+		return nil, err
+	}
+	if userChannels == nil {
+		return nil, nil
+	}
+
+	messages, err := cu.messageRepository.GetAllInChannel(id)
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
 }

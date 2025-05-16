@@ -3,7 +3,6 @@ package handler
 import (
 	"chat_back/interface/types"
 	"chat_back/usecase"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -15,6 +14,7 @@ type ChannelHandler interface {
 	HandleInsert(ctx *gin.Context)
 	HandleGetByID(ctx *gin.Context)
 	HandleAddUserToChannel(ctx *gin.Context)
+	HandleGetMessagesInChannel(ctx *gin.Context)
 }
 
 type channelHandler struct {
@@ -33,28 +33,23 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 	var channel types.RequestChannel
 	if err := ctx.BindJSON(&channel); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request",
-		})
 		return
 	}
 
 	tempUser, ok := ctx.Get("user")
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
-
 	user, ok := tempUser.(*clerk.User)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
 
 	newChannel, err := ch.channelUseCase.Insert(channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
 	if err != nil {
-		fmt.Println(err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert channel"})
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -113,4 +108,44 @@ func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+func (ch *channelHandler) HandleGetMessagesInChannel(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleGetMessagesInChannel")
+
+	var uri types.ChannelURI
+	if err := ctx.BindUri(&uri); err != nil {
+		slog.Error(err.Error())
+		return
+	}
+	slog.DebugContext(ctx, uri.ID)
+
+	tempUser, ok := ctx.Get("user")
+	if !ok {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	messages, err := ch.channelUseCase.GetMessagesOfChannel(uri.ID, user.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	responseMessages := make([]types.Message, len(*messages))
+	for index, message := range *messages {
+		responseMessages[index] = types.Message{
+			ID:        message.ID,
+			UserID:    message.ID,
+			ChannelID: message.ChannelID,
+			Content:   message.Content,
+		}
+	}
+	ctx.JSON(http.StatusOK, responseMessages)
 }

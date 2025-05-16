@@ -4,6 +4,7 @@ import (
 	"chat_back/domain/model"
 	"chat_back/domain/repository"
 	"errors"
+	"log/slog"
 
 	"gorm.io/gorm"
 )
@@ -32,14 +33,15 @@ func (ug userGuildsPersistence) Insert(userID string, guildID string) (*model.Us
 }
 
 func (ug userGuildsPersistence) Find(userID string, guildID string) (*model.UserGuilds, error) {
-	var userGuilds *model.UserGuilds
-	result := ug.db.Where("user_id = ? AND guild_id = ?", userID, guildID).First(userGuilds)
+	var userGuilds model.UserGuilds
+	result := ug.db.Where("user_id = ? AND guild_id = ?", userID, guildID).First(&userGuilds)
 	if err := result.Error; err != nil {
+		slog.Error(err.Error())
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	return userGuilds, nil
+	return &userGuilds, nil
 }

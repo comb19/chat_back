@@ -8,7 +8,6 @@ import (
 type MessageUsecase interface {
 	Insert(channelID string, userID string, content string) (*model.Message, error)
 	GetByID(ID string) (*model.Message, error)
-	GetAllInChannel(channelID string) ([]model.Message, error)
 }
 
 type messageUseCase struct {
@@ -27,7 +26,4 @@ func (mu messageUseCase) Insert(channelID string, userID string, content string)
 
 func (mu messageUseCase) GetByID(ID string) (*model.Message, error) {
 	return mu.messageRepository.GetByID(ID)
-}
-func (mu messageUseCase) GetAllInChannel(channelID string) ([]model.Message, error) {
-	return mu.messageRepository.GetAllInChannel(channelID)
 }

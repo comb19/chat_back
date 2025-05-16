@@ -3,7 +3,7 @@ package persistence
 import (
 	"chat_back/domain/model"
 	"chat_back/domain/repository"
-	"fmt"
+	"log/slog"
 
 	"gorm.io/gorm"
 )
@@ -36,13 +36,13 @@ func (mp messagePersistence) GetByID(ID string) (*model.Message, error) {
 	}
 	return &message, nil
 }
-func (mp messagePersistence) GetAllInChannel(channelID string) ([]model.Message, error) {
-	fmt.Println("GetAllInChannel")
-	var messages []model.Message
-	result := mp.db.Table("messages").Select("messages.id, messages.user_id, users.user_name, messages.content, messages.channel_id").Where("channel_id = ?", channelID).Joins("left outer join users on messages.user_id = users.id").Scan(&messages)
+func (mp messagePersistence) GetAllInChannel(channelID string) (*[]*model.Message, error) {
+	slog.Debug("GetAllInChannel")
+
+	var messages []*model.Message
+	result := mp.db.Table("messages").Select("messages.id, messages.user_id, users.user_name, messages.content, messages.channel_id").Where("channel_id = ?", channelID).Joins("left outer join users on messages.user_id = users.id").Find(&messages)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	fmt.Println(messages)
-	return messages, nil
+	return &messages, nil
 }

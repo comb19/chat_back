@@ -44,8 +44,8 @@ func (cp *channelPersistence) GetByID(id string) (*model.Channel, error) {
 	return &channel, nil
 }
 
-func (cp *channelPersistence) GetAllInGuild(guildID *string) ([]model.Channel, error) {
-	var channels []model.Channel
+func (cp *channelPersistence) GetAllInGuild(guildID *string) ([]*model.Channel, error) {
+	var channels []*model.Channel
 	result := cp.db.Where("guild_id = ?", *guildID).Find(&channels)
 	if result.Error != nil {
 		return nil, result.Error

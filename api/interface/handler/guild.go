@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"chat_back/interface/types"
 	"chat_back/usecase"
 	"log/slog"
 	"net/http"
@@ -9,20 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RequestGuild struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type ResponseGuild struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
 type GuildHandler interface {
 	HandlePostGuilds(ctx *gin.Context)
 	HandleGetGuilds(ctx *gin.Context)
+	HandleGetChannelsOfGuild(ctx *gin.Context)
 }
 
 type guildHandler struct {
@@ -38,7 +29,7 @@ func NewGuildHandler(guildUseCase usecase.GuildUseCase) GuildHandler {
 func (gh guildHandler) HandlePostGuilds(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandlePostGuilds")
 
-	var requestGuild RequestGuild
+	var requestGuild types.RequestGuild
 	if err := ctx.BindJSON(&requestGuild); err != nil {
 		return
 	}
@@ -60,7 +51,7 @@ func (gh guildHandler) HandlePostGuilds(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, ResponseGuild{
+	ctx.JSON(http.StatusCreated, types.ResponseGuild{
 		ID:          guild.ID,
 		Name:        guild.Name,
 		Description: guild.Description,
@@ -83,13 +74,14 @@ func (gh guildHandler) HandleGetGuilds(ctx *gin.Context) {
 
 	guilds, err := gh.guildUseCase.GetGuildsOfUser(user.ID)
 	if err != nil {
+		slog.Error(err.Error())
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
-	responseGuilds := make([]ResponseGuild, len(guilds))
+	responseGuilds := make([]types.ResponseGuild, len(guilds))
 	for index, guild := range guilds {
-		responseGuilds[index] = ResponseGuild{
+		responseGuilds[index] = types.ResponseGuild{
 			ID:          guild.ID,
 			Name:        guild.Name,
 			Description: guild.Description,
@@ -97,4 +89,41 @@ func (gh guildHandler) HandleGetGuilds(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, responseGuilds)
+}
+
+func (gh guildHandler) HandleGetChannelsOfGuild(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleGetChannelsOfGuild")
+
+	tempUser, ok := ctx.Get("user")
+	if !ok {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var uri types.GuildURI
+	if err := ctx.BindUri(&uri); err != nil {
+		return
+	}
+
+	channels, err := gh.guildUseCase.GetChannelsOfGuild(uri.ID, user.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	responseChannels := make([]*types.ResponseChannel, len(channels))
+	for index, channel := range channels {
+		responseChannels[index] = &types.ResponseChannel{
+			ID:          channel.ID,
+			Name:        channel.Name,
+			Description: channel.Description,
+			Private:     channel.Private,
+		}
+	}
 }

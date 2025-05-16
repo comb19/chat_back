@@ -44,7 +44,7 @@ func (gp guildPersistence) Find(id string) (*model.Guild, error) {
 
 func (gp guildPersistence) FindOfUser(userID string) ([]*model.Guild, error) {
 	var guilds []*model.Guild
-	result := gp.db.Model(&model.Guild{}).Where("user_guilds.user_id = ?", userID).Joins("inner join user_guilds on guilds.id = user_guilds.guild_id").Scan(guilds)
+	result := gp.db.Model(&model.Guild{}).Where("user_guilds.user_id = ?", userID).Joins("inner join user_guilds on guilds.id = user_guilds.guild_id").Find(&guilds)
 	if result.Error != nil {
 		return []*model.Guild{}, result.Error
 	}

@@ -9,7 +9,6 @@ import (
 type ChannelUsecase interface {
 	Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
 	GetByID(id string) (*model.Channel, error)
-	GetAllInGuild(guildID *string) ([]model.Channel, error)
 	AddUserToChannel(id string, userIDs []string) (*model.Channel, error)
 }
 
@@ -47,14 +46,6 @@ func (cu channelUseCase) GetByID(id string) (*model.Channel, error) {
 		return nil, err
 	}
 	return channel, nil
-}
-
-func (cu channelUseCase) GetAllInGuild(guildID *string) ([]model.Channel, error) {
-	channels, err := cu.channelRepository.GetAllInGuild(guildID)
-	if err != nil {
-		return nil, err
-	}
-	return channels, nil
 }
 
 func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.Channel, error) {

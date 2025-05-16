@@ -124,6 +124,8 @@ func SetupRouter() *gin.Engine {
 	userHandler := handler.NewUserHandler(wh, userUseCase)
 
 	userChannelsPersistence := persistence.NewUserChannelsPersistence(db)
+	userGuildsPersistence := persistence.NewUserGuildsPersistence(db)
+
 	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
 
 	messagePersistence := persistence.NewMessagePersistence(db)
@@ -135,7 +137,7 @@ func SetupRouter() *gin.Engine {
 	channelHandler := handler.NewChannelHandler(channelUseCase)
 
 	guildPersistence := persistence.NewGuildPersistence(db)
-	guildUseCase := usecase.NewGuildUseCase(guildPersistence)
+	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence)
 	guildHandler := handler.NewGuildHandler(guildUseCase)
 
 	router := gin.Default()
@@ -165,7 +167,7 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/guilds/:guildID", func(ctx *gin.Context) {})
 		authorized.PUT("/guilds/:guildID", func(ctx *gin.Context) {})
 		authorized.DELETE("/guilds/:guildID", func(ctx *gin.Context) {})
-		authorized.GET("/guilds/:guildID/channels", func(ctx *gin.Context) {})
+		authorized.GET("/guilds/:guildID/channels", guildHandler.HandleGetChannelsOfGuild)
 		authorized.GET("/guilds/:guildID/users", func(ctx *gin.Context) {})
 	}
 

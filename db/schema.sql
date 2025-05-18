@@ -59,6 +59,18 @@ CREATE TABLE "user_guilds" (
     FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
 );
 
+CREATE TABLE "guild_invitations" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
+    "owner_id" varchar(32) NOT NULL,
+    "guild_id" UUID NOT NULL,
+    "expiration" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE, 
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+);
+
 CREATE OR REPLACE FUNCTION update_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN

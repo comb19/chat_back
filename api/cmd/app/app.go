@@ -140,6 +140,10 @@ func SetupRouter() *gin.Engine {
 	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence, userChannelsPersistence)
 	guildHandler := handler.NewGuildHandler(guildUseCase)
 
+	guildInvitationPersistence := persistence.NewGuildInvitationPersistence(db)
+	guildInvitationUsecase := usecase.NewGuildInvitationUsecase(guildInvitationPersistence, userGuildsPersistence)
+	guildInvitationHandler := handler.NewGuildInvitationHandler(guildInvitationUsecase)
+
 	router := gin.Default()
 
 	router.Use(cors.New(cors.Config{
@@ -168,6 +172,9 @@ func SetupRouter() *gin.Engine {
 		authorized.GET("/guilds/:guildID/channels", guildHandler.HandleGetChannelsOfGuild)
 		authorized.POST("/guilds/:guildID/channels", guildHandler.HandleCreateChannelInGuild)
 		authorized.GET("/guilds/:guildID/users", func(ctx *gin.Context) {})
+
+		authorized.POST("/invitations/guilds/", guildInvitationHandler.CreateGuildInvitation)
+		authorized.GET("/invitations/guilds/:invitationID", guildInvitationHandler.VerifyGuildInvitation)
 	}
 
 	router.POST("/users", userHandler.HandleCreateUserByClerk)

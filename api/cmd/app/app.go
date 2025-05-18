@@ -137,7 +137,7 @@ func SetupRouter() *gin.Engine {
 	channelHandler := handler.NewChannelHandler(channelUseCase)
 
 	guildPersistence := persistence.NewGuildPersistence(db)
-	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence)
+	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence, userChannelsPersistence)
 	guildHandler := handler.NewGuildHandler(guildUseCase)
 
 	router := gin.Default()
@@ -153,7 +153,7 @@ func SetupRouter() *gin.Engine {
 	authorized.Use(authenticationMiddleware())
 	{
 		authorized.POST("/channels", channelHandler.HandleInsert)
-		authorized.GET("/channels/:channelID", func(ctx *gin.Context) {})
+		authorized.GET("/channels/:channelID", channelHandler.HandleGetByID)
 		authorized.PUT("/channels/:channelID", func(ctx *gin.Context) {})
 		authorized.DELETE("/channels/:channelID", func(ctx *gin.Context) {})
 		authorized.GET("/channels/:channelID/users", func(ctx *gin.Context) {})
@@ -166,6 +166,7 @@ func SetupRouter() *gin.Engine {
 		authorized.PUT("/guilds/:guildID", func(ctx *gin.Context) {})
 		authorized.DELETE("/guilds/:guildID", func(ctx *gin.Context) {})
 		authorized.GET("/guilds/:guildID/channels", guildHandler.HandleGetChannelsOfGuild)
+		authorized.POST("/guilds/:guildID/channels", guildHandler.HandleCreateChannelInGuild)
 		authorized.GET("/guilds/:guildID/users", func(ctx *gin.Context) {})
 	}
 

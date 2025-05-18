@@ -6,6 +6,6 @@ type Message struct {
 	UserID    string
 	UserName  string
 	ChannelID string
-	CreatedAt string
+	CreatedAt string `gorm:"default"`
 	UpdatedAt string
 }

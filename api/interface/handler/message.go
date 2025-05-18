@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"chat_back/interface/types"
 	"chat_back/usecase"
 	"encoding/json"
 	"fmt"
@@ -38,21 +39,8 @@ type authorizationMessage struct {
 	Token     string `json:"token"`
 }
 
-type message struct {
-	ID        string `json:"id"`
-	UserID    string `json:"user_id"`
-	UserName  string `json:"user_name"`
-	ChannelID string `json:"channel_id"`
-	Content   string `json:"content"`
-}
-
-type messageURI struct {
-	ChannelID string `uri:"channelID" binding:"required,uuid"`
-}
-
 type MessageHandler interface {
 	HandleMessageByID(ctx *gin.Context)
-	HandleMessageInChannel(ctx *gin.Context)
 	HandleMessageWebSocket(ctx *gin.Context)
 }
 
@@ -68,14 +56,14 @@ type Client struct {
 	conn      *websocket.Conn
 	userID    string
 	channelID string
-	send      chan message
+	send      chan types.Message
 }
 
 type Hub struct {
 	clients    map[string]map[*Client]struct{}
 	register   chan *Client
 	unregister chan *Client
-	broadcast  chan message
+	broadcast  chan types.Message
 }
 
 func (h *Hub) run() {
@@ -145,7 +133,7 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 			break
 		}
 
-		var msg message
+		var msg types.Message
 		if err := json.Unmarshal(rawMsg, &msg); err != nil {
 			slog.Debug(err.Error())
 			break
@@ -160,6 +148,8 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 
 		msg.ID = insertedMsg.ID
 		msg.UserName = *user.Username
+		msg.CreatedAt = insertedMsg.CreatedAt
+		msg.UserID = insertedMsg.UserID
 
 		c.hub.broadcast <- msg
 	}
@@ -213,7 +203,7 @@ func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCa
 		clients:    map[string]map[*Client]struct{}{},
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		broadcast:  make(chan message),
+		broadcast:  make(chan types.Message),
 	}
 	go hub.run()
 
@@ -228,7 +218,7 @@ func NewMessageHandler(messageUseCase usecase.MessageUsecase, authorizationUseCa
 func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleMessageWebSocket")
 
-	var messageURI messageURI
+	var messageURI types.MessageURI
 	if err := ctx.ShouldBindUri(&messageURI); err != nil {
 		slog.ErrorContext(ctx, err.Error())
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
@@ -242,7 +232,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 		return
 	}
 
-	client := &Client{hub: mh.hub, conn: conn, channelID: messageURI.ChannelID, send: make(chan message, 256)}
+	client := &Client{hub: mh.hub, conn: conn, channelID: messageURI.ChannelID, send: make(chan types.Message, 256)}
 	client.hub.register <- client
 
 	msgType, msg, err := conn.ReadMessage()
@@ -290,7 +280,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
 	fmt.Println("HandleMessageByID")
 
-	var messageURI messageURI
+	var messageURI types.MessageURI
 	if err := ctx.ShouldBindUri(&messageURI); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
@@ -302,35 +292,4 @@ func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, message)
-}
-
-func (mh messageHandler) HandleMessageInChannel(ctx *gin.Context) {
-	fmt.Println("HandleMessageInChannel")
-
-	var messageURI messageURI
-	if err := ctx.ShouldBindUri(&messageURI); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-	fmt.Println("channelID", messageURI.ChannelID)
-
-	messages, err := mh.messageUseCase.GetAllInChannel(messageURI.ChannelID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get messages"})
-		return
-	}
-
-	var parsed_messages []message
-	for _, msg := range messages {
-		parsed_messages = append(parsed_messages, message{
-			ID:        msg.ID,
-			UserID:    msg.UserID,
-			UserName:  msg.UserName,
-			ChannelID: msg.ChannelID,
-			Content:   msg.Content,
-		})
-	}
-	fmt.Println("parsed_messages", parsed_messages)
-
-	ctx.JSON(http.StatusOK, parsed_messages)
 }

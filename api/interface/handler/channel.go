@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"chat_back/interface/types"
 	"chat_back/usecase"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -10,38 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type usersRequestBody struct {
-	UserIDs []string `json:"user_ids" binding:"required"`
-}
-
-type channelURI struct {
-	ID string `uri:"channelID" binding:"required,uuid"`
-}
-
-type guildURI struct {
-	ID string `uri:"guildID" binding:"required,uuid"`
-}
-
-type RequestChannel struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Private     bool    `json:"private"`
-	GuildID     *string `json:"guild_id"`
-}
-
-type ResponseChannel struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Private     bool    `json:"private"`
-	GuildID     *string `json:"guild_id"`
-}
-
 type ChannelHandler interface {
 	HandleInsert(ctx *gin.Context)
 	HandleGetByID(ctx *gin.Context)
-	HandleGetAllInGuild(ctx *gin.Context)
 	HandleAddUserToChannel(ctx *gin.Context)
+	HandleGetMessagesInChannel(ctx *gin.Context)
 }
 
 type channelHandler struct {
@@ -57,35 +30,30 @@ func NewChannelHandler(channelUseCase usecase.ChannelUsecase) ChannelHandler {
 func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleInsert")
 
-	var channel RequestChannel
+	var channel types.RequestChannel
 	if err := ctx.BindJSON(&channel); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request",
-		})
 		return
 	}
 
 	tempUser, ok := ctx.Get("user")
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
-
 	user, ok := tempUser.(*clerk.User)
 	if !ok {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
 
 	newChannel, err := ch.channelUseCase.Insert(channel.Name, channel.Description, channel.Private, user.ID, channel.GuildID)
 	if err != nil {
-		fmt.Println(err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert channel"})
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, ResponseChannel{
+	ctx.JSON(http.StatusCreated, types.ResponseChannel{
 		ID:          newChannel.ID,
 		Name:        newChannel.Name,
 		Description: newChannel.Description,
@@ -97,19 +65,18 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleGetByID")
 
-	var uri channelURI
-	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	var uri types.ChannelURI
+	if err := ctx.BindUri(&uri); err != nil {
 		return
 	}
 
 	channel, err := ch.channelUseCase.GetByID(uri.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get channel"})
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, ResponseChannel{
+	ctx.JSON(http.StatusOK, types.ResponseChannel{
 		ID:          channel.ID,
 		Name:        channel.Name,
 		Description: channel.Description,
@@ -118,46 +85,17 @@ func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
 	})
 }
 
-func (ch *channelHandler) HandleGetAllInGuild(ctx *gin.Context) {
-	slog.DebugContext(ctx, "HandleGetAllInGuild")
-
-	var uri guildURI
-	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
-
-	channels, err := ch.channelUseCase.GetAllInGuild(&uri.ID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get channels"})
-		return
-	}
-
-	responseChannels := make([]ResponseChannel, 0)
-	for _, channel := range channels {
-		responseChannels = append(responseChannels, ResponseChannel{
-			ID:          channel.ID,
-			Name:        channel.Name,
-			Description: channel.Description,
-			Private:     channel.Private,
-			GuildID:     channel.GuildID,
-		})
-	}
-
-	ctx.JSON(http.StatusOK, responseChannels)
-}
-
 func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleAddUserToChannel")
 	slog.DebugContext(ctx, ctx.Request.URL.RawPath)
 
-	var uri channelURI
+	var uri types.ChannelURI
 	if err := ctx.BindUri(&uri); err != nil {
 		slog.ErrorContext(ctx, err.Error())
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
-	var userRequestBody usersRequestBody
+	var userRequestBody types.UsersRequestBody
 	if err := ctx.BindJSON(&userRequestBody); err != nil {
 		return
 	}
@@ -169,4 +107,46 @@ func (ch *channelHandler) HandleAddUserToChannel(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+func (ch *channelHandler) HandleGetMessagesInChannel(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleGetMessagesInChannel")
+
+	var uri types.ChannelURI
+	if err := ctx.BindUri(&uri); err != nil {
+		slog.Error(err.Error())
+		return
+	}
+	slog.DebugContext(ctx, uri.ID)
+
+	tempUser, ok := ctx.Get("user")
+	if !ok {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	messages, err := ch.channelUseCase.GetMessagesOfChannel(uri.ID, user.ID)
+	if err != nil {
+		slog.Error(err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	responseMessages := make([]types.Message, len(*messages))
+	for index, message := range *messages {
+		responseMessages[index] = types.Message{
+			ID:        message.ID,
+			UserID:    message.ID,
+			UserName:  message.UserName,
+			ChannelID: message.ChannelID,
+			Content:   message.Content,
+			CreatedAt: message.CreatedAt,
+		}
+	}
+	ctx.JSON(http.StatusOK, responseMessages)
 }

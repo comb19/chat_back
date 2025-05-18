@@ -6,6 +6,7 @@ type Message struct {
 	UserName  string `json:"user_name"`
 	ChannelID string `json:"channel_id"`
 	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
 }
 
 type MessageURI struct {

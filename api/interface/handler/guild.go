@@ -14,6 +14,7 @@ type GuildHandler interface {
 	HandlePostGuilds(ctx *gin.Context)
 	HandleGetGuilds(ctx *gin.Context)
 	HandleGetChannelsOfGuild(ctx *gin.Context)
+	HandleCreateChannelInGuild(ctx *gin.Context)
 }
 
 type guildHandler struct {
@@ -126,4 +127,39 @@ func (gh guildHandler) HandleGetChannelsOfGuild(ctx *gin.Context) {
 			Private:     channel.Private,
 		}
 	}
+
+	ctx.JSON(http.StatusOK, responseChannels)
+}
+
+func (gh guildHandler) HandleCreateChannelInGuild(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleCreateChannelInGuild")
+
+	var requestChannel types.RequestChannel
+	if err := ctx.BindJSON(&requestChannel); err != nil {
+		return
+	}
+
+	tempUser, ok := ctx.Get("user")
+	if !ok {
+		ctx.Status(http.StatusUnauthorized)
+		return
+	}
+	user, ok := tempUser.(*clerk.User)
+	if !ok {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var uri types.GuildURI
+	if err := ctx.BindUri(&uri); err != nil {
+		return
+	}
+
+	channel, err := gh.guildUseCase.CreateNewChannelInGuild(uri.ID, user.ID, requestChannel.Name, requestChannel.Description)
+	if err != nil {
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, channel)
 }

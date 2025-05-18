@@ -66,14 +66,13 @@ func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleGetByID")
 
 	var uri types.ChannelURI
-	if err := ctx.ShouldBindUri(&uri); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	if err := ctx.BindUri(&uri); err != nil {
 		return
 	}
 
 	channel, err := ch.channelUseCase.GetByID(uri.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get channel"})
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -143,8 +142,10 @@ func (ch *channelHandler) HandleGetMessagesInChannel(ctx *gin.Context) {
 		responseMessages[index] = types.Message{
 			ID:        message.ID,
 			UserID:    message.ID,
+			UserName:  message.UserName,
 			ChannelID: message.ChannelID,
 			Content:   message.Content,
+			CreatedAt: message.CreatedAt,
 		}
 	}
 	ctx.JSON(http.StatusOK, responseMessages)

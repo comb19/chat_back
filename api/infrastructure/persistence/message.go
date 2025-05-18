@@ -24,7 +24,12 @@ func (mp messagePersistence) Insert(channelID string, userID string, content str
 		UserID:    userID,
 		Content:   content,
 	}
-	result := mp.db.Select("user_id", "channel_id", "content").Create(&message)
+	// result := mp.db.Select("user_id", "channel_id", "content").Create(&message)
+	result := mp.db.Raw(`INSERT INTO messages (channel_id, user_id, content) 
+    VALUES (?, ?, ?) 
+    RETURNING id, user_id, channel_id, content, created_at`, message.ChannelID, message.UserID, message.Content).Scan(&message)
+	slog.Debug(message.ID)
+	slog.Debug(message.CreatedAt)
 	return &message, result.Error
 }
 
@@ -40,7 +45,7 @@ func (mp messagePersistence) GetAllInChannel(channelID string) (*[]*model.Messag
 	slog.Debug("GetAllInChannel")
 
 	var messages []*model.Message
-	result := mp.db.Table("messages").Select("messages.id, messages.user_id, users.user_name, messages.content, messages.channel_id").Where("channel_id = ?", channelID).Joins("left outer join users on messages.user_id = users.id").Find(&messages)
+	result := mp.db.Table("messages").Select("messages.id, messages.user_id, users.user_name, messages.content, messages.channel_id, messages.created_at").Where("channel_id = ?", channelID).Joins("left outer join users on messages.user_id = users.id").Find(&messages)
 	if result.Error != nil {
 		return nil, result.Error
 	}

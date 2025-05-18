@@ -148,6 +148,8 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 
 		msg.ID = insertedMsg.ID
 		msg.UserName = *user.Username
+		msg.CreatedAt = insertedMsg.CreatedAt
+		msg.UserID = insertedMsg.UserID
 
 		c.hub.broadcast <- msg
 	}

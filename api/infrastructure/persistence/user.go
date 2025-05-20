@@ -30,7 +30,7 @@ func (up userPersistence) Insert(id, userName string) (*model.User, error) {
 	return user, nil
 }
 
-func (up userPersistence) GetByID(id string) (*model.User, error) {
+func (up userPersistence) Find(id string) (*model.User, error) {
 	user := &model.User{}
 	if err := up.db.First(user, "id = ?", id).Error; err != nil {
 		return nil, err

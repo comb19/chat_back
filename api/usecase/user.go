@@ -29,7 +29,7 @@ func (uu *userUseCase) CreateUserByClerk(id, userName string) (*model.User, erro
 }
 
 func (uu *userUseCase) GetUserByID(id string) (*model.User, error) {
-	user, err := uu.userRepository.GetByID(id)
+	user, err := uu.userRepository.Find(id)
 	if err != nil {
 		return nil, err
 	}

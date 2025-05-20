@@ -35,6 +35,15 @@ func (cp *channelPersistence) Insert(name string, description string, private bo
 	return &channel, result.Error
 }
 
+func (cp *channelPersistence) Delete(id string) error {
+	var channel model.Channel
+	result := cp.db.Where("id = ?", id).Delete(&channel)
+	if result.Error != nil {
+		return result.Error
+	}
+	return nil
+}
+
 func (cp *channelPersistence) GetByID(id string) (*model.Channel, error) {
 	var channel model.Channel
 	result := cp.db.Where("id = ?", id).First(&channel)

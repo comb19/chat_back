@@ -12,6 +12,7 @@ import (
 
 type ChannelHandler interface {
 	HandleInsert(ctx *gin.Context)
+	HandleDelete(ctx *gin.Context)
 	HandleGetByID(ctx *gin.Context)
 	HandleAddUserToChannel(ctx *gin.Context)
 	HandleGetMessagesInChannel(ctx *gin.Context)
@@ -60,6 +61,23 @@ func (ch *channelHandler) HandleInsert(ctx *gin.Context) {
 		Private:     newChannel.Private,
 		GuildID:     newChannel.GuildID,
 	})
+}
+
+func (ch *channelHandler) HandleDelete(ctx *gin.Context) {
+	slog.DebugContext(ctx, "HandleDelete")
+
+	var uri types.ChannelURI
+	if err := ctx.BindUri(&uri); err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		return
+	}
+	err := ch.channelUseCase.Delete(uri.ID)
+	if err != nil {
+		slog.ErrorContext(ctx, err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 func (ch *channelHandler) HandleGetByID(ctx *gin.Context) {

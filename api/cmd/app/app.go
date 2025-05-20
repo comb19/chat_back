@@ -149,7 +149,7 @@ func SetupRouter() *gin.Engine {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{envVar.FrontendUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Access-Control-Allow-Headers", "Content-Type", "Authorization"},
 		AllowCredentials: false,
 	}))
 

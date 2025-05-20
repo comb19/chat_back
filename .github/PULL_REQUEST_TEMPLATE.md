@@ -7,4 +7,4 @@
 -->
 
 ## Issue
-<!-- Closes #1 >
+<!-- Closes #1 -->

@@ -1,14 +1,8 @@
-CREATE TABLE "todos" (
-    "id" serial NOT NULL,
-    "title" varchar(255) NULL,
-    "description" text NULL,
-    "completed" boolean NULL,
-    PRIMARY KEY ("id")
-);
-
 CREATE TABLE "users" (
     "id" varchar(32) PRIMARY KEY,
-    "user_name" varchar(255) NOT NULL
+    "user_name" varchar(255) NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "guilds" (
@@ -44,7 +38,8 @@ CREATE TABLE "messages" (
 CREATE TABLE "user_channels" (
     user_id varchar(32) NOT NULL,
     channel_id UUID NOT NULL,
-
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, channel_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
@@ -53,9 +48,21 @@ CREATE TABLE "user_channels" (
 CREATE TABLE "user_guilds" (
     user_id varchar(32) NOT NULL,
     guild_id UUID NOT NULL,
-
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, guild_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+);
+
+CREATE TABLE "guild_invitations" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
+    "owner_id" varchar(32) NOT NULL,
+    "guild_id" UUID NOT NULL,
+    "expiration" TIMESTAMP,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE, 
     FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
 );
 

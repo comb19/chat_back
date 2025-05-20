@@ -8,6 +8,7 @@ import (
 
 type ChannelUsecase interface {
 	Insert(name string, description string, public bool, ownerID string, guildID *string) (*model.Channel, error)
+	Delete(id string) error
 	GetByID(id string) (*model.Channel, error)
 	AddUserToChannel(id string, userIDs []string) (*model.Channel, error)
 	GetMessagesOfChannel(id, userID string) (*[]*model.Message, error)
@@ -41,6 +42,14 @@ func (cu channelUseCase) Insert(name string, description string, public bool, ow
 		return nil, err
 	}
 	return channel, nil
+}
+
+func (cu channelUseCase) Delete(id string) error {
+	err := cu.channelRepository.Delete(id)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cu channelUseCase) GetByID(id string) (*model.Channel, error) {

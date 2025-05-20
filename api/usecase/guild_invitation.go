@@ -14,11 +14,11 @@ type GuildInvitationUsecase interface {
 }
 
 type guildInvitationUsecase struct {
-	guildInvitationRepository repository.GuildInviationRepository
+	guildInvitationRepository repository.GuildInvitationRepository
 	userGuildRepository       repository.UserGuildsRepository
 }
 
-func NewGuildInvitationUsecase(guildInvitationRepository repository.GuildInviationRepository, userGuildRepository repository.UserGuildsRepository) GuildInvitationUsecase {
+func NewGuildInvitationUsecase(guildInvitationRepository repository.GuildInvitationRepository, userGuildRepository repository.UserGuildsRepository) GuildInvitationUsecase {
 	return guildInvitationUsecase{
 		guildInvitationRepository: guildInvitationRepository,
 		userGuildRepository:       userGuildRepository,

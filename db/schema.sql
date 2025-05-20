@@ -2,7 +2,7 @@ CREATE TABLE "users" (
     "id" varchar(32) PRIMARY KEY,
     "user_name" varchar(255) NOT NULL,
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE "guilds" (
@@ -59,7 +59,7 @@ CREATE TABLE "guild_invitations" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
     "owner_id" varchar(32) NOT NULL,
     "guild_id" UUID NOT NULL,
-    "expiration" TIMESTAMP DEFAULT,
+    "expiration" TIMESTAMP,
     "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE, 

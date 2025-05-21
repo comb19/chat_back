@@ -8,7 +8,7 @@ services:
     ports:
       - "${APP_PORT}:8080"
   db:
-    image: postgres:latest
+    image: postgres:17.5-alpine3.21
     container_name: ${POSTGRES_CONTAINER_NAME}
     hostname: ${POSTGRES_HOSTNAME}
     ports:
@@ -20,7 +20,7 @@ services:
     volumes:
       - db_store:/var/lib/postgresql/data
   db-dev:
-    image: postgres:latest
+    image: postgres:17.5-alpine3.21
     container_name: ${POSTGRES_CONTAINER_NAME_DEV}
     hostname: ${POSTGRES_HOSTNAME_DEV}
     ports:

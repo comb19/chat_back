@@ -6,5 +6,5 @@ import (
 
 type UserRepository interface {
 	Insert(id, userName string) (*model.User, error)
-	GetByID(id string) (*model.User, error)
+	Find(id string) (*model.User, error)
 }

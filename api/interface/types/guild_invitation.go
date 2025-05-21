@@ -15,5 +15,9 @@ type ResponseGuildInvitation struct {
 	OwnerID    string    `json:"owner_id"`
 	GuildID    string    `json:"guild_id"`
 	Expiration time.Time `json:"expiration"`
-	URL        string    `json:"url"`
+}
+
+type ResponseVerifiedInvitation struct {
+	OwnerID string `json:"owner_id"`
+	GuildID string `json:"guild_id"`
 }

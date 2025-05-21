@@ -6,6 +6,7 @@ import (
 	"chat_back/interface/types"
 	"chat_back/test/utils"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -59,7 +60,7 @@ func TestCreateGuildInvitation(t *testing.T) {
 	assert.Equal(t, ownerID, responseGuildInvitation.OwnerID)
 
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("GET", responseGuildInvitation.URL, nil)
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/invitations/guilds/%s", responseGuildInvitation.ID), nil)
 	req.Header.Set("Authorization", "Bearer "+*inviteeToken)
 	router.ServeHTTP(w, req)
 

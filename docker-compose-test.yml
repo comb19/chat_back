@@ -1,10 +1,12 @@
+version: '3'
+
 services:
   app:
     build: ./api
     command: ./chat_back
     container_name: ${APP_CONTAINER_NAME}
     env_file:
-      - .env.development
+      - .env.test
     ports:
       - "${APP_PORT}:8080"
   db:

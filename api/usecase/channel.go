@@ -3,6 +3,7 @@ package usecase
 import (
 	"chat_back/domain/model"
 	"chat_back/domain/repository"
+	"chat_back/service"
 	"fmt"
 )
 
@@ -18,13 +19,15 @@ type channelUseCase struct {
 	userChannelsRespository repository.UserChannelsRepository
 	channelRepository       repository.ChannelRepository
 	messageRepository       repository.MessageRepository
+	authorizationService    service.AuthorizationService
 }
 
-func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository, channelRepository repository.ChannelRepository, messageRepository repository.MessageRepository) ChannelUsecase {
+func NewChannelUsecase(userChannelsRepository repository.UserChannelsRepository, channelRepository repository.ChannelRepository, messageRepository repository.MessageRepository, authorizationService service.AuthorizationService) ChannelUsecase {
 	return &channelUseCase{
 		userChannelsRespository: userChannelsRepository,
 		channelRepository:       channelRepository,
 		messageRepository:       messageRepository,
+		authorizationService:    authorizationService,
 	}
 }
 
@@ -79,11 +82,11 @@ func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.C
 }
 
 func (cu channelUseCase) GetMessagesOfChannel(id, userID string) (*[]*model.Message, error) {
-	userChannels, err := cu.userChannelsRespository.Find(userID, id)
+	isAuthorized, err := cu.authorizationService.CheckAuthorizationAccessToChannel(userID, id)
 	if err != nil {
 		return nil, err
 	}
-	if userChannels == nil {
+	if !isAuthorized {
 		return nil, nil
 	}
 

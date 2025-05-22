@@ -4,6 +4,7 @@ import (
 	"chat_back/infrastructure/config"
 	"chat_back/infrastructure/persistence"
 	"chat_back/interface/handler"
+	"chat_back/service"
 	"chat_back/usecase"
 	"context"
 	"fmt"
@@ -119,29 +120,31 @@ func SetupRouter() *gin.Engine {
 
 	db := config.Init()
 
+	// infrastructure
 	userPersistence := persistence.NewUserPersistence(db)
-	userUseCase := usecase.NewUserUsecase(userPersistence)
-	userHandler := handler.NewUserHandler(wh, userUseCase)
-
 	userChannelsPersistence := persistence.NewUserChannelsPersistence(db)
 	userGuildsPersistence := persistence.NewUserGuildsPersistence(db)
-
-	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
-
-	messagePersistence := persistence.NewMessagePersistence(db)
-	messageUseCase := usecase.NewMessageUsecase(messagePersistence)
-	messageHandler := handler.NewMessageHandler(messageUseCase, authorizationUseCase)
-
-	channelPersistence := persistence.NewChannelPersistence(db)
-	channelUseCase := usecase.NewChannelUsecase(userChannelsPersistence, channelPersistence, messagePersistence)
-	channelHandler := handler.NewChannelHandler(channelUseCase)
-
 	guildPersistence := persistence.NewGuildPersistence(db)
-	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence, userChannelsPersistence)
-	guildHandler := handler.NewGuildHandler(guildUseCase)
-
+	channelPersistence := persistence.NewChannelPersistence(db)
+	messagePersistence := persistence.NewMessagePersistence(db)
 	guildInvitationPersistence := persistence.NewGuildInvitationPersistence(db)
+
+	// service
+	authorizationService := service.NewAuthorizationService(userGuildsPersistence, userChannelsPersistence, channelPersistence)
+
+	// usecase
+	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
+	userUseCase := usecase.NewUserUsecase(userPersistence)
+	messageUseCase := usecase.NewMessageUsecase(messagePersistence)
+	channelUseCase := usecase.NewChannelUsecase(userChannelsPersistence, channelPersistence, messagePersistence, authorizationService)
+	guildUseCase := usecase.NewGuildUseCase(guildPersistence, userGuildsPersistence, channelPersistence, userChannelsPersistence)
 	guildInvitationUsecase := usecase.NewGuildInvitationUsecase(guildInvitationPersistence, userGuildsPersistence)
+
+	// interface
+	userHandler := handler.NewUserHandler(wh, userUseCase)
+	messageHandler := handler.NewMessageHandler(messageUseCase, authorizationUseCase)
+	channelHandler := handler.NewChannelHandler(channelUseCase)
+	guildHandler := handler.NewGuildHandler(guildUseCase)
 	guildInvitationHandler := handler.NewGuildInvitationHandler(guildInvitationUsecase)
 
 	router := gin.Default()

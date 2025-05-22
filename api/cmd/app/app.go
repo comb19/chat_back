@@ -133,7 +133,7 @@ func SetupRouter() *gin.Engine {
 	authorizationService := service.NewAuthorizationService(userGuildsPersistence, userChannelsPersistence, channelPersistence)
 
 	// usecase
-	authorizationUseCase := usecase.NewAuthorizationUsecase(userChannelsPersistence)
+	authorizationUseCase := usecase.NewAuthorizationUsecase(authorizationService)
 	userUseCase := usecase.NewUserUsecase(userPersistence)
 	messageUseCase := usecase.NewMessageUsecase(messagePersistence)
 	channelUseCase := usecase.NewChannelUsecase(userChannelsPersistence, channelPersistence, messagePersistence, authorizationService)

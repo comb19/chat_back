@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"chat_back/domain/repository"
+	"chat_back/service"
 	"context"
 	"log/slog"
 
@@ -15,12 +15,12 @@ type AuthorizationUsecase interface {
 }
 
 type authorizationUsecase struct {
-	userChannelsRepository repository.UserChannelsRepository
+	authorizationService service.AuthorizationService
 }
 
-func NewAuthorizationUsecase(userChannelsRepository repository.UserChannelsRepository) AuthorizationUsecase {
+func NewAuthorizationUsecase(authorizationService service.AuthorizationService) AuthorizationUsecase {
 	return &authorizationUsecase{
-		userChannelsRepository: userChannelsRepository,
+		authorizationService: authorizationService,
 	}
 }
 
@@ -42,13 +42,11 @@ func (au *authorizationUsecase) CheckPermission(channelID string, token string) 
 		return nil, err
 	}
 
-	userChannels, err := au.userChannelsRepository.Find(user.ID, channelID)
+	isAuthorized, err := au.authorizationService.CheckAuthorizationAccessToChannel(user.ID, channelID)
 	if err != nil {
-		slog.ErrorContext(ctx, err.Error())
 		return nil, err
 	}
-	if userChannels == nil {
-		slog.ErrorContext(ctx, "a relation between user and channel is not found")
+	if !isAuthorized {
 		return nil, nil
 	}
 

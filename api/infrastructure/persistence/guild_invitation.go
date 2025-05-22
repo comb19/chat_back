@@ -13,7 +13,7 @@ type guildInvitationPersistence struct {
 	db *gorm.DB
 }
 
-func NewGuildInvitationPersistence(db *gorm.DB) repository.GuildInviationRepository {
+func NewGuildInvitationPersistence(db *gorm.DB) repository.GuildInvitationRepository {
 	return &guildInvitationPersistence{
 		db: db,
 	}

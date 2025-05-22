@@ -33,7 +33,7 @@ func (mp messagePersistence) Insert(channelID string, userID string, content str
 	return &message, result.Error
 }
 
-func (mp messagePersistence) GetByID(ID string) (*model.Message, error) {
+func (mp messagePersistence) Find(ID string) (*model.Message, error) {
 	var message model.Message
 	result := mp.db.First(&message, ID)
 	if result.Error != nil {
@@ -41,7 +41,7 @@ func (mp messagePersistence) GetByID(ID string) (*model.Message, error) {
 	}
 	return &message, nil
 }
-func (mp messagePersistence) GetAllInChannel(channelID string) (*[]*model.Message, error) {
+func (mp messagePersistence) FindAllInChannel(channelID string) (*[]*model.Message, error) {
 	slog.Debug("GetAllInChannel")
 
 	var messages []*model.Message

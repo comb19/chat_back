@@ -25,5 +25,5 @@ func (mu messageUseCase) Insert(channelID string, userID string, content string)
 }
 
 func (mu messageUseCase) GetByID(ID string) (*model.Message, error) {
-	return mu.messageRepository.GetByID(ID)
+	return mu.messageRepository.Find(ID)
 }

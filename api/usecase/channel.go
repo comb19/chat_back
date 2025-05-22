@@ -53,7 +53,7 @@ func (cu channelUseCase) Delete(id string) error {
 }
 
 func (cu channelUseCase) GetByID(id string) (*model.Channel, error) {
-	channel, err := cu.channelRepository.GetByID(id)
+	channel, err := cu.channelRepository.Find(id)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (cu channelUseCase) GetByID(id string) (*model.Channel, error) {
 }
 
 func (cu channelUseCase) AddUserToChannel(id string, userIDs []string) (*model.Channel, error) {
-	channel, err := cu.channelRepository.GetByID(id)
+	channel, err := cu.channelRepository.Find(id)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (cu channelUseCase) GetMessagesOfChannel(id, userID string) (*[]*model.Mess
 		return nil, nil
 	}
 
-	messages, err := cu.messageRepository.GetAllInChannel(id)
+	messages, err := cu.messageRepository.FindAllInChannel(id)
 	if err != nil {
 		return nil, err
 	}

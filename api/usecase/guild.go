@@ -64,7 +64,7 @@ func (gu guildUseCase) GetChannelsOfGuild(ID, userID string) ([]*model.Channel, 
 		return nil, nil
 	}
 
-	channels, err := gu.channelRepository.GetAllInGuild(&ID)
+	channels, err := gu.channelRepository.FindAllInGuild(&ID)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err

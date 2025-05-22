@@ -149,7 +149,7 @@ func SetupRouter() *gin.Engine {
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{envVar.FrontendUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Access-Control-Allow-Headers", "Content-Type", "Authorization"},
 		AllowCredentials: false,
 	}))
 
@@ -173,8 +173,8 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/guilds/:guildID/channels", guildHandler.HandleCreateChannelInGuild)
 		authorized.GET("/guilds/:guildID/users", func(ctx *gin.Context) {})
 
-		authorized.POST("/invitations/guilds/", guildInvitationHandler.CreateGuildInvitation)
-		authorized.GET("/invitations/guilds/:invitationID", guildInvitationHandler.VerifyGuildInvitation)
+		authorized.POST("/invitations/guilds", guildInvitationHandler.HandleCreateGuildInvitation)
+		authorized.GET("/invitations/guilds/:invitationID", guildInvitationHandler.HandleVerifyGuildInvitation)
 	}
 
 	router.POST("/users", userHandler.HandleCreateUserByClerk)

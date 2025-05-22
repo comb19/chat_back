@@ -3,7 +3,6 @@ package handler
 import (
 	"chat_back/interface/types"
 	"chat_back/usecase"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -12,8 +11,8 @@ import (
 )
 
 type GuildInvitationHandler interface {
-	CreateGuildInvitation(ctx *gin.Context)
-	VerifyGuildInvitation(ctx *gin.Context)
+	HandleCreateGuildInvitation(ctx *gin.Context)
+	HandleVerifyGuildInvitation(ctx *gin.Context)
 }
 
 type guildInvitationHandler struct {
@@ -26,7 +25,7 @@ func NewGuildInvitationHandler(guildInvitationUsecase usecase.GuildInvitationUse
 	}
 }
 
-func (gih guildInvitationHandler) CreateGuildInvitation(ctx *gin.Context) {
+func (gih guildInvitationHandler) HandleCreateGuildInvitation(ctx *gin.Context) {
 	slog.DebugContext(ctx, "CreateGuildInvitation")
 
 	var requestGuildInvitation types.RequestGuildInvitation
@@ -56,11 +55,10 @@ func (gih guildInvitationHandler) CreateGuildInvitation(ctx *gin.Context) {
 		OwnerID:    guildInvitation.OwnerID,
 		GuildID:    guildInvitation.GuildID,
 		Expiration: guildInvitation.Expiration,
-		URL:        fmt.Sprintf("/invitations/guilds/%s", guildInvitation.ID),
 	})
 }
 
-func (gih guildInvitationHandler) VerifyGuildInvitation(ctx *gin.Context) {
+func (gih guildInvitationHandler) HandleVerifyGuildInvitation(ctx *gin.Context) {
 	slog.DebugContext(ctx, "VerifyGuildInvitation")
 
 	var guildInvitationUri types.GuildInvitationURI
@@ -79,13 +77,16 @@ func (gih guildInvitationHandler) VerifyGuildInvitation(ctx *gin.Context) {
 		return
 	}
 
-	verified, err := gih.guildInvitationUsecase.VerifyGuildInvitation(guildInvitationUri.ID, user.ID)
+	isVerified, guildInvitation, err := gih.guildInvitationUsecase.VerifyGuildInvitation(guildInvitationUri.ID, user.ID)
 	if err != nil {
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
-	if verified {
-		ctx.Status(http.StatusAccepted)
+	if isVerified {
+		ctx.JSON(http.StatusAccepted, types.ResponseVerifiedInvitation{
+			OwnerID: guildInvitation.OwnerID,
+			GuildID: guildInvitation.GuildID,
+		})
 		return
 	} else {
 		ctx.Status(http.StatusBadRequest)

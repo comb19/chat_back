@@ -135,14 +135,13 @@ func (c *Client) readPump(uc usecase.MessageUsecase, user *clerk.User) {
 
 		var msg types.Message
 		if err := json.Unmarshal(rawMsg, &msg); err != nil {
-			slog.Debug(err.Error())
+			slog.Error(err.Error())
 			break
 		}
-		fmt.Println("read", msg)
 
 		insertedMsg, err := uc.Insert(msg.ChannelID, user.ID, msg.Content)
 		if err != nil {
-			slog.Debug(err.Error())
+			slog.Error(err.Error())
 			break
 		}
 
@@ -219,16 +218,14 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 	slog.DebugContext(ctx, "HandleMessageWebSocket")
 
 	var messageURI types.MessageURI
-	if err := ctx.ShouldBindUri(&messageURI); err != nil {
+	if err := ctx.BindUri(&messageURI); err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 
 	conn, err := mh.wsUpgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		slog.ErrorContext(ctx, err.Error())
-		fmt.Println("websocket upgrade err:", err)
 		return
 	}
 
@@ -253,9 +250,9 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 		conn.Close()
 		return
 	}
-	fmt.Println("authorizationMessage", authorizationMessage)
+	slog.DebugContext(ctx, fmt.Sprintln("authorizationMessage", authorizationMessage))
 	if authorizationMessage.ChannelID != messageURI.ChannelID {
-		fmt.Println("Channel ID mismatch")
+		slog.ErrorContext(ctx, fmt.Sprintf("Channel ID mismatch: %s, %s", authorizationMessage.ChannelID, messageURI.ChannelID))
 		conn.Close()
 		return
 	}
@@ -267,7 +264,7 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 		return
 	}
 	if user == nil {
-		fmt.Println("User not found or no permission")
+		slog.ErrorContext(ctx, "User not found or no permission")
 		conn.Close()
 		return
 	}
@@ -278,17 +275,16 @@ func (mh messageHandler) HandleMessageWebSocket(ctx *gin.Context) {
 }
 
 func (mh messageHandler) HandleMessageByID(ctx *gin.Context) {
-	fmt.Println("HandleMessageByID")
+	slog.DebugContext(ctx, "HandleMessageByID")
 
 	var messageURI types.MessageURI
-	if err := ctx.ShouldBindUri(&messageURI); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	if err := ctx.BindUri(&messageURI); err != nil {
 		return
 	}
 
 	message, err := mh.messageUseCase.GetByID(messageURI.ChannelID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get message"})
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 	ctx.JSON(http.StatusOK, message)

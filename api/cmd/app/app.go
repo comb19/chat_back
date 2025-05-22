@@ -173,7 +173,7 @@ func SetupRouter() *gin.Engine {
 		authorized.POST("/guilds/:guildID/channels", guildHandler.HandleCreateChannelInGuild)
 		authorized.GET("/guilds/:guildID/users", func(ctx *gin.Context) {})
 
-		authorized.POST("/invitations/guilds/", guildInvitationHandler.HandleCreateGuildInvitation)
+		authorized.POST("/invitations/guilds", guildInvitationHandler.HandleCreateGuildInvitation)
 		authorized.GET("/invitations/guilds/:invitationID", guildInvitationHandler.HandleVerifyGuildInvitation)
 	}
 

@@ -4,7 +4,10 @@ services:
     command: ./chat_back
     container_name: ${APP_CONTAINER_NAME}
     env_file:
-      - .env.development
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - ENV=${ENV}
     ports:
       - "${APP_PORT}:8080"
   db:
@@ -19,37 +22,74 @@ services:
       - POSTGRES_DB=${POSTGRES_DB} 
     volumes:
       - db_store:/var/lib/postgresql/data
-  db-dev:
+  db-test:
     image: postgres:17.5-alpine3.21
-    container_name: ${POSTGRES_CONTAINER_NAME_DEV}
-    hostname: ${POSTGRES_HOSTNAME_DEV}
+    container_name: ${TEST_POSTGRES_CONTAINER_NAME}
+    hostname: ${TEST_POSTGRES_HOSTNAME}
     ports:
-      - "${POSTGRES_PORT_DEV}:5432"
+      - "${TEST_POSTGRES_PORT}:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB} 
     volumes:
-      - db_store_dev:/var/lib/postgresql/data
+      - test_db_store:/var/lib/postgresql/data
+  db-dev:
+    image: postgres:17.5-alpine3.21
+    container_name: ${DEV_POSTGRES_CONTAINER_NAME}
+    hostname: ${DEV_POSTGRES_HOSTNAME}
+    ports:
+      - "${DEV_POSTGRES_PORT}:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB} 
+  db-test-dev:
+    image: postgres:17.5-alpine3.21
+    container_name: ${DEV_TEST_POSTGRES_CONTAINER_NAME}
+    hostname: ${DEV_TEST_POSTGRES_HOSTNAME}
+    ports:
+      - "${DEV_TEST_POSTGRES_PORT}:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB} 
   migrate:
     build: ./migration
     container_name: ${MIGRATION_CONTAINER_NAME}
     volumes:
       - ./db:/db:ro
     entrypoint: ["/bin/bash", "/app/wait-for-it.sh", "${POSTGRES_HOSTNAME}:5432", "--",
-      "/bin/bash", "/app/wait-for-it.sh", "${POSTGRES_HOSTNAME_DEV}:5432", "--",
+      "/bin/bash", "/app/wait-for-it.sh", "${DEV_POSTGRES_HOSTNAME}:5432", "--",
       "atlas", "schema", "apply",
-      "--url", "${DATABASE_URL}",
-      "--dev-url", "${DATABASE_URL_DEV}",
+      "--url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable",
+      "--dev-url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DEV_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable",
       "--to", "file:///db/schema.sql",
       "--auto-approve"
     ]
     depends_on:
       - db
       - db-dev
+  test-migrate:
+    build: ./migration
+    container_name: ${TEST_MIGRATION_CONTAINER_NAME}
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["/bin/bash", "/app/wait-for-it.sh", "${TEST_POSTGRES_HOSTNAME}:5432", "--",
+      "/bin/bash", "/app/wait-for-it.sh", "${DEV_TEST_POSTGRES_HOSTNAME}:5432", "--",
+      "atlas", "schema", "apply",
+      "--url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${TEST_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable",
+      "--dev-url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DEV_TEST_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable",
+      "--to", "file:///db/schema.sql",
+      "--auto-approve"
+    ]
+    depends_on:
+      - db-test
+      - db-test-dev
+
 
 volumes:
   db_store:
     name: ${POSTGRES_VOLUME_NAME}
-  db_store_dev:
-    name: ${POSTGRES_VOLUME_NAME_DEV}
+  test_db_store:
+    name: ${TEST_POSTGRES_VOLUME_NAME}

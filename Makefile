@@ -1,30 +1,42 @@
-.PHONY: restart, migrate, update, clean, test, update_test, migrate_test
+include .env
+.PHONY: init, restart, migrate, update, clean, test, dev-migrate, test-migrate
+
+init:
+	$(MAKE) clean
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=DEVELOPMENT \
+	docker compose up -d --build
+	docker compose down db-dev db-test-dev
 
 restart:
-	docker compose restart
-
-migrate:
-	docker compose down
-	docker volume rm postgres_chat_app_dev
-	docker compose --env-file .env.development up -d --build
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=DEVELOPMENT \
+	docker compose restart app db db-test
 
 update:
-	docker compose --env-file .env.development up -d --build
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=DEVELOPMENT \
+	docker compose up app -d --build
 
 clean:
-	docker compose down
-	docker volume rm postgres_chat_app
-	docker volume rm postgres_chat_app_dev
-	docker volume rm postgres_chat_app_test
-	docker volume rm postgres_chat_app_test_dev
+	docker compose down -v
 
 test:
-	docker container exec -it api_chat_app_test go test ./test
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${TEST_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=TEST \
+	docker compose restart app	
+	docker container exec -it ${APP_CONTAINER_NAME} go test ./test
 
-update_test:
-	docker compose --env-file .env.test up -d --build
+migrate:
+	$(MAKE) dev-migrate
+	$(MAKE) test-migrate
 
-migrate_test:
-	docker compose down
-	docker volume rm postgres_chat_app_test_dev
-	docker compose --env-file .env.test up -d --build
+dev-migrate:
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=DEVELOPMENT \
+	docker compose up db-dev -d
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=DEVELOPMENT \
+	docker compose up migrate
+	docker compose down db-dev
+
+test-migrate:
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${TEST_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=TEST \
+	docker compose up db-test-dev -d
+	env DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${TEST_POSTGRES_HOSTNAME}:5432/${POSTGRES_DB}?sslmode=disable" ENV=TEST \
+	docker compose up test-migrate
+	docker compose down db-test-dev

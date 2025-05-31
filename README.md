@@ -1,6 +1,6 @@
 # chat_back
 ## 概要
-チャットアプリのバックエンドです。[フロントエンド](https://github.com/comb19/chat_front)
+チャットアプリのバックエンドです。[フロントエンド](https://github.com/comb19/chat_front)<br/>
 WebSocketを使用しリアルタイムなメッセージのやり取りを実現しています。
 
 ## 使用技術

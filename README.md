@@ -4,12 +4,12 @@
 WebSocketを使用しリアルタイムなメッセージのやり取りを実現しています。
 
 ## 使用技術
-バックエンド：Go, gin
-フロントエンド：TypeScript, Next.js
-開発、実行環境：Docker Compose
-認証：Clerk
-DB：PostgreSQL
-ホスティング：Render.com, Netlify.com、neon.tech
+バックエンド：Go, gin<br/>
+フロントエンド：TypeScript, Next.js<br/>
+開発、実行環境：Docker Compose<br/>
+認証：Clerk<br/>
+DB：PostgreSQL<br/>
+ホスティング：Render.com, Netlify.com、neon.tech<br/>
 
 
 ![Static Badge](https://img.shields.io/badge/Go-00ADD8?logo=Go&logoColor=white&style=for-the-badge)
